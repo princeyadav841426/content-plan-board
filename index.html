@@ -256,7 +256,7 @@ button.btn.quiet:hover{background:var(--paper-2)}
 .s-n{font-size:11px;font-weight:700;color:var(--ink);background:var(--sand-wash);
   width:20px;height:20px;line-height:20px;text-align:center;flex:none;
   font-variant-numeric:tabular-nums}
-.ang{font-size:9.5px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;
+.ang{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;
   color:var(--ink);background:var(--sand);padding:3px 7px;flex:none}
 .hold,.secs{font-size:9.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
   color:var(--ink-3);flex:none}
@@ -357,6 +357,28 @@ details.why b{color:var(--ink);font-weight:600}
   background:var(--ink);color:var(--paper);border:0;padding:11px 18px;cursor:pointer;border-radius:2px}
 .ascancel{font-size:11px;background:none;border:0;color:var(--ink-3);cursor:pointer;
   text-decoration:underline;text-underline-offset:3px;padding:11px 2px}
+/* shot name over the direction */
+.s-name{font-size:15.5px;font-weight:700;line-height:1.35;margin:0 0 3px;color:var(--ink);
+  letter-spacing:-.01em}
+.s-do.under{color:var(--ink-2);font-size:13.5px;margin-top:0}
+/* a shot we already hold */
+.s-meta .ondrive{font-size:9px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--go);border:1px solid var(--go);padding:2px 6px;border-radius:2px}
+.shot.has-footage{background:linear-gradient(90deg,rgba(28,107,74,.05),rgba(28,107,74,0) 62%);
+  box-shadow:inset 3px 0 0 var(--go)}
+.shot.has-footage .s-txt{padding-left:13px}
+.havetag{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--go);margin:0 0 7px;line-height:1.3}
+.havetag small{display:block;font-size:10px;font-weight:500;letter-spacing:0;text-transform:none;
+  color:var(--ink-3);margin-top:3px;word-break:break-word}
+.shot.has-footage .ref.add{border-color:rgba(28,107,74,.35)}
+.shot.has-footage .ref.add .plus{color:var(--go)}
+.ascheck{display:flex!important;align-items:center;gap:8px;margin-bottom:10px;
+  text-transform:none!important;letter-spacing:0!important;font-size:13px!important;
+  font-weight:500!important;color:var(--ink-2)!important;cursor:pointer}
+.ascheck input{width:auto!important;margin:0!important;display:inline-block!important}
+.asfile{display:none}
+.asform.wanthave .asfile{display:block}
 .s-kill{font-size:9.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
   background:none;border:0;color:var(--ink-3);cursor:pointer;padding:2px 4px;
   text-decoration:underline;text-underline-offset:3px}
@@ -568,7 +590,7 @@ body[data-role="creator"] .stagepill{display:none}
     </div>
 
     <footer>Two shoot mornings a week. 15 reels, 5 carousels, plus whatever she films along the way.
-      <span style="float:right;font-variant-numeric:tabular-nums">build 7</span></footer>
+      <span style="float:right;font-variant-numeric:tabular-nums">build 8</span></footer>
   </main>
 </div>
 
@@ -581,8 +603,8 @@ body[data-role="creator"] .stagepill{display:none}
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <!-- bump ?v= on every push so nobody is ever looking at a cached old build -->
-<script src="config.js?v=7"></script>
-<script src="plan-data.js?v=7"></script>
-<script src="app.js?v=7"></script>
+<script src="config.js?v=8"></script>
+<script src="plan-data.js?v=8"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>

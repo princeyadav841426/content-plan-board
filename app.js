@@ -245,16 +245,21 @@
   function toRich(s) { return String(s == null ? '' : s).replace(/\*([^*\n]+)\*/g, '<b>$1</b>'); }
 
   /* One shot per line in the edit box:
-       WIDE | tripod | what she does | 15
-     Two fields means angle and action; one field is a step that isn't a shot
-     (the voiceover instructions, for instance). */
+       WIDE | tripod | Shot name :: how to shoot it | 15 | have: clip.mp4
+     The shot NAME comes first, then :: then the direction. Two fields means
+     angle and action; one field is a step that isn't a shot (the voiceover
+     instructions, for instance). A trailing "have" marks footage we already
+     hold, and anything after "have:" is the clip's name on the drive. */
   function shotsToText(shots) {
     return shots.map(function (s) {
       var bits = [];
-      if (s.a) bits.push(s.a);
+      if (s.a) bits.push(angleWords(s.a));
       if (s.a && s.h) bits.push(s.h);
-      bits.push(toPlain(s.do || ''));
+      var act = toPlain(s.do || '');
+      if (s.n) act = toPlain(s.n) + ' :: ' + act;
+      bits.push(act);
       if (s.s) bits.push(String(s.s));
+      if (s.have) bits.push(s.file ? 'have: ' + s.file : 'have');
       return bits.join(' | ');
     }).join('\n');
   }
@@ -262,15 +267,34 @@
     return String(txt || '').split('\n').filter(function (l) { return l.trim(); })
       .map(function (line) {
         var parts = line.split('|').map(function (x) { return x.trim(); });
-        if (parts.length === 1) return { do: toRich(parts[0]) };
-        var o = { a: parts[0].toUpperCase() };
-        if (parts.length === 2) { o.do = toRich(parts[1]); return o; }
-        // three or more: angle | hold | action | seconds
+
+        // a trailing "have" / "have: file.mp4" comes off the end first
+        var have = null;
+        if (parts.length > 1 && /^have\b/i.test(parts[parts.length - 1])) {
+          var hv = parts.pop();
+          have = { have: true };
+          var f = hv.replace(/^have\s*:?\s*/i, '').trim();
+          if (f) have.file = f;
+        }
+
+        // "Shot name :: how to shoot it" splits the action field in two
+        var splitAct = function (o, raw) {
+          var bits = String(raw).split('::');
+          if (bits.length > 1) { o.n = toRich(bits.shift().trim()); o.do = toRich(bits.join('::').trim()); }
+          else o.do = toRich(raw);
+          return o;
+        };
+        var fin = function (o) { if (have) { o.have = true; if (have.file) o.file = have.file; } return o; };
+
+        if (parts.length === 1) return fin(splitAct({}, parts[0]));
+        var o = { a: angleCode(parts[0]) };
+        if (parts.length === 2) return fin(splitAct(o, parts[1]));
+        // three or more: angle | hold | name :: action | seconds
         o.h = /hand/i.test(parts[1]) ? 'hand' : 'tripod';
-        o.do = toRich(parts[2]);
-        var s = parseInt(parts[3], 10);
-        if (s) o.s = s;
-        return o;
+        splitAct(o, parts[2]);
+        var sec = parseInt(parts[3], 10);
+        if (sec) o.s = sec;
+        return fin(o);
       });
   }
   function F(p, f) { var e = get('edit:' + p.id, {}); return e[f] !== undefined ? e[f] : p[f]; }
@@ -294,7 +318,31 @@
   function holdWords(h) {
     return h === 'hand' ? 'In your hand' : h === 'tripod' ? 'On the tripod' : '';
   }
-  var ANGLES = ['WIDE', 'MEDIUM', 'CLOSE', 'MIRROR', 'POV', 'PHOTO'];
+  /* Stored short (WIDE), always SHOWN in full (Wide shot) — Prince's call:
+     "write full form like close-up shot, wide shot, medium shot". The edit box
+     and the dropdown both speak the long form; angleCode reads it back. */
+  var ANGLES = [
+    { v: 'WIDE',   t: 'Wide shot' },
+    { v: 'MEDIUM', t: 'Medium shot' },
+    { v: 'CLOSE',  t: 'Close-up shot' },
+    { v: 'MIRROR', t: 'Mirror shot' },
+    { v: 'POV',    t: 'POV shot' },
+    { v: 'PHOTO',  t: 'Photo' }
+  ];
+  function angleWords(a) {
+    for (var i = 0; i < ANGLES.length; i++) if (ANGLES[i].v === a) return ANGLES[i].t;
+    return a || '';
+  }
+  function angleCode(txt) {
+    var t = String(txt || '').trim().toUpperCase();
+    if (/CLOSE|CU\b/.test(t)) return 'CLOSE';
+    if (/MEDIUM|MID\b/.test(t)) return 'MEDIUM';
+    if (/WIDE/.test(t)) return 'WIDE';
+    if (/MIRROR/.test(t)) return 'MIRROR';
+    if (/POV/.test(t)) return 'POV';
+    if (/PHOTO|STILL/.test(t)) return 'PHOTO';
+    return t.replace(/\s+SHOT$/, '');
+  }
 
   /* Writing a shot list back. Shots are addressed by their POSITION, so the
      references pinned to them have to move with them: adding on the end touches
@@ -430,7 +478,7 @@
 
   /* ───────────────── post card ───────────────── */
 
-  function refsHTML(k) {
+  function refsHTML(k, have) {
     var refs = get('refs:' + k, []) || [];
     var h = '';
     refs.forEach(function (src, i) {
@@ -448,7 +496,8 @@
     h += '<div class="ref add" data-add="' + k + '" role="button" tabindex="0" ' +
          'aria-label="Add a reference photo or clip">' +
          '<span class="plus">+</span>' + (refs.length ? 'Add another'
-           : 'Photo or clip<small>Drag it here, or tap</small>') + '</div>';
+           : (have ? 'Add a still<small>Optional</small>'
+                   : 'Photo or clip<small>Drag it here, or tap</small>')) + '</div>';
     return h;
   }
 
@@ -461,7 +510,7 @@
       '<div class="asform">' +
         '<div class="asrow">' +
           '<label>Angle<select data-asf="a">' +
-            ANGLES.map(function (a) { return '<option value="' + a + '">' + a + '</option>'; }).join('') +
+            ANGLES.map(function (a) { return '<option value="' + a.v + '">' + a.t + '</option>'; }).join('') +
             '<option value="">Not a shot &mdash; just a step</option></select></label>' +
           '<label>Camera<select data-asf="h">' +
             '<option value="tripod">On the tripod</option>' +
@@ -469,33 +518,54 @@
             '<option value="">Doesn&rsquo;t matter</option></select></label>' +
           '<label>Seconds<input type="number" min="1" max="60" step="1" value="4" data-asf="s"></label>' +
         '</div>' +
-        '<label class="asdo">Shot name &mdash; what she actually does' +
-          '<input type="text" data-asf="do" placeholder="Close on the coffee being poured"></label>' +
+        '<label class="asdo">Shot name' +
+          '<input type="text" data-asf="n" placeholder="Coffee being poured"></label>' +
+        '<label class="asdo">How to shoot it' +
+          '<input type="text" data-asf="do" placeholder="Phone close to the cup, sound on. Fill the frame."></label>' +
+        '<label class="ascheck"><input type="checkbox" data-asf="have">' +
+          '<span>Already filmed &mdash; it&rsquo;s on the drive</span></label>' +
+        '<label class="asdo asfile"><input type="text" data-asf="file" ' +
+          'placeholder="Which clip on the drive, e.g. 08 Close-up coffee machine.mp4"></label>' +
         '<div class="asbtns">' +
           '<button class="assave" data-assave="' + p.id + '">Add this shot</button>' +
           '<button class="ascancel" data-ascancel="' + p.id + '">Cancel</button>' +
         '</div>' +
         '<p class="edtip">It lands at the bottom of the list with its own upload box. ' +
+          'Tick &ldquo;already filmed&rdquo; and the row turns green instead of asking her to shoot it. ' +
           'Put *stars* around anything that should come out bold.</p>' +
       '</div></div>';
   }
 
+  /* A shot row reads: number, angle, camera, length — then the SHOT NAME in
+     bold, then the short direction under it. A shot we already hold is marked
+     green on both sides, so at a glance it is obvious which rows still need
+     filming and which are already sitting on the drive. */
   function shotHTML(p, sh, i) {
-    var k = slotKey(p.id, i), dom = slotDom(k);
+    var k = slotKey(p.id, i), dom = slotDom(k), have = !!sh.have;
     var meta = '<span class="s-n">' + (i + 1) + '</span>';
-    if (sh.a) meta += '<span class="ang">' + esc(sh.a) + '</span>';
+    if (sh.a) meta += '<span class="ang">' + esc(angleWords(sh.a)) + '</span>';
     var hw = holdWords(sh.h);
     if (hw) meta += '<span class="hold">' + hw + '</span>';
     if (sh.s) meta += '<span class="secs">' + sh.s + 's</span>';
-    return '<li class="shot">' +
+    if (have) meta += '<span class="ondrive">Already filmed</span>';
+
+    var body = '';
+    if (sh.n) body += '<p class="s-name">' + sh.n + '</p>';
+    if (sh.do) body += '<p class="s-do' + (sh.n ? ' under' : '') + '">' + sh.do + '</p>';
+
+    var med = '';
+    if (have) {
+      med += '<p class="havetag">On the drive' +
+        (sh.file ? '<small>' + esc(sh.file) + '</small>' : '<small>Nothing to film for this one</small>') + '</p>';
+    }
+    med += '<div class="refstrip" id="' + dom + '">' + refsHTML(k, have) + '</div>' +
+           '<p class="smsg" id="smsg-' + dom + '"></p>';
+
+    return '<li class="shot' + (have ? ' has-footage' : '') + '">' +
       '<div class="s-txt"><div class="s-meta">' + meta +
         '<button class="s-kill studio-only" data-killshot="' + p.id + '" data-i="' + i +
-        '" title="Remove this shot">Remove</button></div>' +
-        '<p class="s-do">' + (sh.do || '') + '</p></div>' +
-      '<div class="s-med" data-zone="' + k + '">' +
-        '<div class="refstrip" id="' + dom + '">' + refsHTML(k) + '</div>' +
-        '<p class="smsg" id="smsg-' + dom + '"></p>' +
-      '</div></li>';
+        '" title="Remove this shot">Remove</button></div>' + body + '</div>' +
+      '<div class="s-med" data-zone="' + k + '">' + med + '</div></li>';
   }
 
   // anything uploaded against the whole post before the shot table existed
@@ -589,6 +659,7 @@
     var note = get('note:' + p.id, '');
     var secs = shotSeconds(p);
     var camShots = shots.filter(function (s) { return !!s.a; }).length;
+    var haveShots = shots.filter(function (s) { return !!s.a && !!s.have; }).length;
     if (isPosted(p)) flags += '<span class="posted">Posted</span>';
 
     return '<article class="card' + (done ? ' is-done' : '') + (isPosted(p) ? ' is-posted' : '') +
@@ -621,6 +692,8 @@
         addShotHTML(p) +
         '<p class="shotsum">' +
           (camShots ? '<b>' + camShots + (camShots === 1 ? ' shot' : ' shots') + '</b>' +
+            (haveShots ? ' &middot; <b>' + haveShots + ' already filmed</b>' +
+              (camShots - haveShots > 0 ? ', ' + (camShots - haveShots) + ' still to get' : ', nothing left to shoot') : '') +
             (secs ? ' &middot; about <b>' + secs + ' seconds</b> of footage in total. ' : '. ')
             : '') +
           'Drop a photo or a clip (up to ' + CLIP_SECONDS + ' seconds) into any row so Swatti can ' +
@@ -635,10 +708,11 @@
             '<p class="edlabel">Title</p><textarea style="min-height:48px" data-edit="' + p.id + '" data-field="title">' + esc(F(p, 'title')) + '</textarea>' +
             '<p class="edlabel">One-line description</p><textarea style="min-height:48px" data-edit="' + p.id + '" data-field="what">' + esc(F(p, 'what')) + '</textarea>' +
             '<p class="edlabel">Shot list &mdash; one shot per line</p>' +
-            '<p class="edtip">Format: <b>ANGLE | tripod or hand | what she does | seconds</b>. ' +
-              'Angles: WIDE, MEDIUM, CLOSE, MIRROR, POV, PHOTO. A line with no bars is a step ' +
-              'that isn&rsquo;t a shot. Put *stars* around anything that should come out bold. ' +
-              'Adding or removing a line shifts the reference frames below it.</p>' +
+            '<p class="edtip">Format: <b>Angle | tripod or hand | Shot name :: how to shoot it | seconds</b>, ' +
+              'and <b>| have: filename</b> on the end if we already have that clip. ' +
+              'Angles: Wide shot, Medium shot, Close-up shot, Mirror shot, POV shot, Photo. ' +
+              'A line with no bars is a step that isn&rsquo;t a shot. Put *stars* around anything ' +
+              'that should come out bold. Adding or removing a line shifts the reference frames below it.</p>' +
             '<textarea style="min-height:180px" data-edit="' + p.id + '" data-field="shots">' +
               esc(shotsToText(shots)) + '</textarea>' +
             '<p class="edlabel">' + (p.vo ? 'Voiceover' : 'Text on screen') + '</p><textarea style="min-height:78px" data-edit="' + p.id + '" data-field="say">' + esc(say || '') + '</textarea>' +
@@ -967,17 +1041,22 @@
       var wrap = document.getElementById('as-' + apid);
       if (!ap2 || !wrap) return;
       var val = function (n) { var el = wrap.querySelector('[data-asf="' + n + '"]'); return el ? el.value.trim() : ''; };
-      var doTxt = val('do');
-      if (!doTxt) {
-        var di = wrap.querySelector('[data-asf="do"]');
-        if (di) { di.focus(); di.placeholder = 'Say what she does in this shot first'; }
+      var nameTxt = val('n'), doTxt = val('do');
+      if (!nameTxt && !doTxt) {
+        var di = wrap.querySelector('[data-asf="n"]');
+        if (di) { di.focus(); di.placeholder = 'Give the shot a name first'; }
         return;
       }
-      var sh = { do: toRich(doTxt) };
+      var sh = {};
+      if (nameTxt) sh.n = toRich(nameTxt);
+      if (doTxt) sh.do = toRich(doTxt);
+      else if (nameTxt) { sh.do = sh.n; delete sh.n; }   // name only = plain line
       var aVal = val('a'), hVal = val('h'), sVal = parseInt(val('s'), 10);
       if (aVal) sh.a = aVal;
       if (hVal) sh.h = hVal;
       if (sVal > 0) sh.s = sVal;
+      var hbox = wrap.querySelector('[data-asf="have"]');
+      if (hbox && hbox.checked) { sh.have = true; if (val('file')) sh.file = val('file'); }
       saveShots(ap2, shotsOf(ap2).concat([sh]));
       openSet[apid] = true;
       renderWeek();
@@ -1071,6 +1150,15 @@
 
   document.addEventListener('change', function (e) {
     var t = e.target;
+    // "already filmed" reveals the which-clip-on-the-drive box
+    if (t.matches('[data-asf="have"]')) {
+      var f = t.closest('.asform');
+      if (f) {
+        f.classList.toggle('wanthave', t.checked);
+        if (t.checked) { var fi = f.querySelector('[data-asf="file"]'); if (fi) fi.focus(); }
+      }
+      return;
+    }
     if (!t.matches('[data-tick]')) return;
     var p = findPost(t.getAttribute('data-tick'));
     if (!p) return;
@@ -1211,7 +1299,10 @@
 
   function redrawSlot(k) {
     var s = document.getElementById(slotDom(k));
-    if (s) { s.innerHTML = refsHTML(k); hydrateRefs(s); }
+    if (!s) return;
+    var li = s.closest('.shot');
+    s.innerHTML = refsHTML(k, !!(li && li.classList.contains('has-footage')));
+    hydrateRefs(s);
   }
 
   /* A phone, Finder and the Photos app all hand a drop over differently. Read

@@ -2,14 +2,16 @@
 
 ## It's already online
 
-**https://princeyadav841426.github.io/content-plan-board/**
+**https://swatti.cutlume.com**
 
 Nothing to install, nothing to upload. Open it on any phone, iPad or laptop. Swatti opens the
 same link — she doesn't need an account, a login, or the Claude app.
 
-It's hosted on GitHub Pages from your own GitHub account (`princeyadav841426`), out of the repo
-`content-plan-board`. The page carries `noindex` and a blocking `robots.txt`, so Google won't
-list it — but treat it like any unlisted link: whoever has it can read it.
+Hosted on GitHub Pages from your own GitHub account (`princeyadav841426`), repo
+`content-plan-board`, with `swatti.cutlume.com` pointed at it by a CNAME in your Cloudflare
+zone. `princeyadav841426.github.io/content-plan-board/` still works and redirects here. The
+page carries `noindex` and a blocking `robots.txt`, so Google won't list it — but treat it like
+any unlisted link: whoever has it can read it.
 
 ---
 
@@ -72,8 +74,9 @@ GitHub rebuilds in about a minute. Same link, every time.
 it is. Change `storeKey` at the top of that file if you want the new month to start with a
 clean set of tick boxes.
 
-**Own domain later:** the link can move to `swatti.cutlume.com` — it needs one DNS record in
-Cloudflare, which is your account. Say the word and I'll give you the exact record.
+**The domain:** `swatti.cutlume.com` is a DNS-only (grey cloud) CNAME to
+`princeyadav841426.github.io` in your Cloudflare zone. Leave it unproxied — turning the orange
+cloud on breaks GitHub's certificate renewal.
 
 ---
 

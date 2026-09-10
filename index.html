@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<title>Swatti · Content Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --paper:#FFFFFF; --ink:#111111; --ink-2:#5A5A5A; --ink-3:#9A9A96;
+  --rule:#ECECE8; --sand:#E2D4BD; --sand-wash:#FAF6EF;
+  --font:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  --pad:22px; --maxw:720px; --base:15px;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font);
+  font-size:var(--base);line-height:1.55;-webkit-font-smoothing:antialiased;
+  padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 var(--pad) 110px}
+
+header{position:sticky;top:0;z-index:30;background:var(--paper);border-bottom:1px solid var(--rule);
+  padding-top:env(safe-area-inset-top)}
+.hd{max-width:var(--maxw);margin:0 auto;padding:18px var(--pad) 0}
+.hd-top{display:flex;align-items:baseline;justify-content:space-between;gap:14px}
+h1{font-size:18px;font-weight:700;margin:0;letter-spacing:-0.025em}
+.range{font-size:12.5px;color:var(--ink-3);font-variant-numeric:tabular-nums;font-weight:500;white-space:nowrap}
+.views{display:flex;align-items:center;margin:14px 0 0}
+.views button{font-family:var(--font);font-size:13px;font-weight:600;background:none;border:0;
+  border-bottom:2px solid transparent;color:var(--ink-3);padding:11px 0;margin-right:24px;cursor:pointer;
+  letter-spacing:-0.01em;min-height:44px}
+.views button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--sand)}
+.views .spacer{flex:1}
+.editbtn{font-family:var(--font);font-size:11.5px;font-weight:600;letter-spacing:.04em;background:none;
+  border:0;color:var(--ink-3);cursor:pointer;padding:11px 0;min-height:44px;white-space:nowrap}
+.editbtn.on{color:var(--ink)}
+.editbtn.on::before{content:"";display:inline-block;width:7px;height:7px;background:var(--sand);
+  border-radius:50%;margin-right:6px;vertical-align:middle}
+button:focus-visible,input:focus-visible,summary:focus-visible,textarea:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+.sync{font-size:11px;color:var(--ink-3);padding:0 0 9px}
+.sync b{color:var(--ink);font-weight:600}
+.sync .dotlive{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--sand);margin-right:5px;vertical-align:middle}
+
+.weeks{display:flex;border-bottom:1px solid var(--rule);overflow-x:auto;-webkit-overflow-scrolling:touch;
+  scrollbar-width:none}
+.weeks::-webkit-scrollbar{display:none}
+.weeks button{font-family:var(--font);font-size:12.5px;font-weight:600;white-space:nowrap;background:none;
+  border:0;border-bottom:2px solid transparent;color:var(--ink-3);padding:13px 0;margin-right:22px;
+  cursor:pointer;min-height:44px}
+.weeks button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--sand)}
+
+.hint{font-size:13.5px;color:var(--ink-2);margin:24px 0 0;max-width:60ch}
+details.how{margin:12px 0 0}
+details.how summary{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--ink-3);cursor:pointer;list-style:none;padding:9px 0;min-height:40px}
+details.how summary::-webkit-details-marker{display:none}
+details.how summary::after{content:" +";color:var(--sand);font-weight:700}
+details.how[open] summary::after{content:" –"}
+details.how ol{margin:4px 0 0;padding-left:19px;color:var(--ink-2);font-size:14px}
+details.how li{margin-bottom:7px}
+details.how b{color:var(--ink);font-weight:600}
+
+.weekhead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:32px 0 6px}
+.weekhead h2{font-size:17px;font-weight:700;margin:0;letter-spacing:-0.025em}
+.weekhead .meta{font-size:12.5px;color:var(--ink-3);font-weight:500;font-variant-numeric:tabular-nums}
+.wknote{font-size:14px;color:var(--ink-2);margin:0;max-width:60ch}
+
+.shootbar{display:flex;gap:12px;background:var(--sand-wash);border-left:3px solid var(--sand);
+  padding:13px 16px;margin:18px 0 0;font-size:13.5px;color:var(--ink-2)}
+.shootbar b{color:var(--ink);font-weight:600}
+.shootbar .cam{flex:none;font-size:10.5px;font-weight:700;letter-spacing:.09em;color:var(--ink-3);padding-top:3px}
+
+.wkplan{border:1px solid var(--rule);padding:20px;margin:14px 0 32px}
+.wkplan h3{font-size:14px;font-weight:700;margin:0 0 5px;letter-spacing:-0.015em}
+.wkplan .sub{font-size:13.5px;color:var(--ink-2);margin:0 0 14px;max-width:58ch}
+textarea{font-family:var(--font);font-size:16px;line-height:1.55;color:var(--ink);width:100%;
+  min-height:80px;padding:11px 12px;border:1px solid var(--rule);background:var(--paper);
+  resize:vertical;border-radius:0;-webkit-appearance:none}
+textarea:focus{outline:0;border-color:var(--sand);box-shadow:0 0 0 3px var(--sand-wash)}
+textarea::placeholder{color:var(--ink-3)}
+.rec{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
+button.btn{font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);background:var(--paper);
+  border:1px solid var(--sand);padding:11px 16px;cursor:pointer;min-height:44px}
+button.btn:hover{background:var(--sand-wash)}
+button.btn.on{background:var(--sand);border-color:var(--sand)}
+button.btn.rec-on{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.linkbtn{background:none;border:0;font-family:var(--font);font-size:12.5px;color:var(--ink-2);
+  text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:11px 0;min-height:44px}
+.recmsg{font-size:12.5px;color:var(--ink-3);flex-basis:100%}
+.wkplan audio{margin-top:12px;width:100%;max-width:360px;display:block}
+.saved{font-size:12px;color:var(--ink-3);margin-top:9px;min-height:16px}
+
+.card{border-top:1px solid var(--rule)}
+.card:last-of-type{border-bottom:1px solid var(--rule)}
+.head{display:flex;gap:15px;align-items:flex-start;padding:20px 0;cursor:pointer}
+.tick{flex:none;padding:2px 0 0}
+.tick input{appearance:none;-webkit-appearance:none;width:24px;height:24px;margin:0;
+  border:1.5px solid var(--rule);background:var(--paper);cursor:pointer;position:relative;
+  transition:background .12s,border-color .12s}
+.tick input:hover{border-color:var(--sand)}
+/* keeps the box visually 24px but gives a thumb a 44px target */
+.tick input::before{content:"";position:absolute;left:-10px;top:-10px;right:-10px;bottom:-10px}
+.tick input:checked{background:var(--sand);border-color:var(--sand)}
+.tick input:checked::after{content:"";position:absolute;left:8px;top:3.5px;width:6px;height:12px;
+  border:solid var(--ink);border-width:0 2px 2px 0;transform:rotate(45deg)}
+.htext{flex:1;min-width:0}
+.eyebrow{display:flex;gap:9px;align-items:center;flex-wrap:wrap;font-size:10.5px;font-weight:600;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);margin-bottom:6px}
+.eyebrow .date{color:var(--ink);font-variant-numeric:tabular-nums}
+.eyebrow .dot{color:var(--sand)}
+.eyebrow .tag{color:var(--ink-2);border-bottom:2px solid var(--sand);padding-bottom:1px}
+.htext h3{font-size:16.5px;font-weight:600;margin:0;letter-spacing:-0.02em;line-height:1.35;text-wrap:balance}
+.htext .one{font-size:13.5px;color:var(--ink-3);margin:5px 0 0;max-width:56ch}
+.chev{flex:none;font-size:10.5px;color:var(--ink-3);padding-top:6px;font-weight:600;letter-spacing:.05em}
+.card.is-done .htext{opacity:.4}
+.card.is-done .htext h3{text-decoration:line-through}
+.body{padding:0 0 26px 39px;display:none}
+.card.open .body{display:block}
+
+.dates{display:flex;gap:24px;flex-wrap:wrap;font-size:11.5px;margin:0 0 22px;padding-bottom:16px;
+  border-bottom:1px solid var(--rule)}
+.dates div{display:flex;gap:7px}
+.dates .k{font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+.dates .v{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+
+.label{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);margin:0 0 11px}
+.film{margin:0 0 24px;padding:0;list-style:none;counter-reset:s}
+.film li{counter-increment:s;position:relative;padding-left:29px;margin-bottom:11px;font-size:14.5px;
+  color:var(--ink-2);max-width:58ch}
+.film li::before{content:counter(s);position:absolute;left:0;top:1px;font-size:11px;font-weight:700;
+  color:var(--ink);background:var(--sand-wash);width:19px;height:19px;line-height:19px;text-align:center;
+  font-variant-numeric:tabular-nums}
+.film li b{color:var(--ink);font-weight:600}
+.saytxt{background:var(--sand-wash);padding:15px 17px;margin:0 0 24px;max-width:56ch}
+.saytxt .label{margin-bottom:7px}
+.saytxt p{margin:0;font-weight:500;font-size:14.5px;color:var(--ink)}
+
+details.why{margin:0 0 22px}
+details.why summary{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--ink-3);cursor:pointer;list-style:none;padding:8px 0;min-height:38px}
+details.why summary::-webkit-details-marker{display:none}
+details.why summary::after{content:" +";color:var(--sand)}
+details.why[open] summary::after{content:" –"}
+details.why p{font-size:13.5px;color:var(--ink-2);margin:6px 0 0;max-width:58ch}
+details.why b{color:var(--ink);font-weight:600}
+
+.refs{margin:0 0 20px}
+.refstrip{display:flex;gap:9px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;
+  scrollbar-width:none}
+.refstrip::-webkit-scrollbar{display:none}
+.ref{flex:none;width:106px;height:188px;background:var(--sand-wash);position:relative;
+  display:flex;align-items:center;justify-content:center}
+.ref img{width:106px;height:188px;object-fit:contain;display:block;background:var(--sand-wash)}
+.ref .del{position:absolute;top:4px;right:4px;background:var(--paper);border:1px solid var(--rule);
+  width:28px;height:28px;font-size:15px;line-height:1;cursor:pointer;color:var(--ink-2);padding:0}
+.ref.add{border:1px dashed var(--sand);cursor:pointer;flex-direction:column;gap:5px;font-size:11.5px;
+  color:var(--ink-3);text-align:center;padding:10px}
+.ref.add:hover{background:var(--paper)}
+.ref.add .plus{font-size:20px;color:var(--sand);line-height:1}
+.ref.empty{font-size:11px;color:var(--ink-3);text-align:center;padding:10px;line-height:1.4}
+.ref.busy{font-size:11px;color:var(--ink-3)}
+/* drag and drop */
+.refzone{position:relative;padding:3px;margin:-3px;transition:background .12s}
+.refzone.dragover{background:var(--sand-wash);outline:2px dashed var(--sand);outline-offset:-2px}
+.refzone.dragover::after{content:"Drop to add";position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);background:var(--ink);color:var(--paper);font-size:11.5px;
+  font-weight:600;letter-spacing:.04em;padding:7px 13px;pointer-events:none;z-index:2}
+.drophint{font-size:11.5px;color:var(--ink-3);margin:8px 0 0}
+.drophint b{color:var(--ink-2);font-weight:600}
+
+.pnote{border-top:1px solid var(--rule);padding-top:18px}
+.pnote textarea{min-height:54px}
+
+.ed{display:none}
+body.editing .ed{display:block}
+body.editing .noed{display:none}
+.ed textarea{min-height:44px;margin-bottom:8px}
+.ed .edlabel{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:#B69B6E;margin:16px 0 7px}
+.editbar{background:var(--sand-wash);border-left:3px solid var(--sand);padding:12px 16px;margin:20px 0 0;
+  font-size:13px;color:var(--ink-2);display:none}
+body.editing .editbar{display:block}
+.editbar b{color:var(--ink)}
+
+.tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:26px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{text-align:left;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--ink-3);padding:0 14px 10px 0;border-bottom:2px solid var(--sand);white-space:nowrap}
+td{padding:11px 14px 11px 0;border-bottom:1px solid var(--rule);vertical-align:top;color:var(--ink-2)}
+td.d{white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--ink);font-weight:600}
+td.t{white-space:nowrap;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+td.n{color:var(--ink);min-width:180px}
+td.dim{font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--ink-3)}
+tr.is-done td.n{text-decoration:line-through;color:var(--ink-3)}
+.wkrow td{padding-top:24px;font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--ink);border-bottom:1px solid var(--sand)}
+
+.counts{display:flex;gap:30px;flex-wrap:wrap;border-top:2px solid var(--sand);margin-top:28px;padding-top:18px}
+.count .n{font-size:26px;font-weight:700;letter-spacing:-0.035em;font-variant-numeric:tabular-nums;
+  display:block;line-height:1.1}
+.count .l{font-size:10.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
+.block{margin-top:36px;border-top:1px solid var(--rule);padding-top:20px}
+.block h2{font-size:13.5px;font-weight:700;margin:0 0 15px;letter-spacing:-0.01em}
+.pil{display:flex;gap:15px;padding:10px 0;border-bottom:1px solid var(--rule);font-size:14px}
+.pil:last-child{border-bottom:0}
+.pil .c{flex:none;width:24px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink)}
+.pil .nm{flex:none;width:142px;font-weight:600}
+.pil .ds{color:var(--ink-2);flex:1;min-width:0}
+.rhythm{margin:0;padding-left:19px;color:var(--ink-2);font-size:14px}
+.rhythm li{margin-bottom:8px}
+.rhythm b{color:var(--ink);font-weight:600}
+footer{border-top:1px solid var(--rule);margin-top:46px;padding-top:18px;font-size:12px;color:var(--ink-3)}
+
+/* ── large desktop ── */
+@media (min-width:1100px){
+  :root{--maxw:840px;--base:15.5px}
+  .htext h3{font-size:17.5px}
+  .ref,.ref img{width:118px;height:210px}
+}
+/* ── tablet / iPad ── */
+@media (min-width:768px) and (max-width:1099px){
+  :root{--maxw:700px}
+}
+/* ── phone ── */
+@media (max-width:767px){
+  :root{--pad:17px;--base:15px}
+  h1{font-size:16.5px}
+  .hd{padding-top:15px}
+  .views button{margin-right:20px}
+  .htext h3{font-size:15.5px}
+  .body{padding-left:0}
+  .head{gap:13px}
+  .pil{flex-wrap:wrap;gap:4px}
+  .pil .nm{width:auto}
+  .pil .ds{flex-basis:100%}
+  .dates{gap:14px}
+  .counts{gap:22px}
+  .count .n{font-size:22px}
+  .chev{display:none}
+  /* month table becomes stacked rows */
+  .tablewrap{overflow:visible}
+  table,thead,tbody,tr,td{display:block;width:100%}
+  thead{display:none}
+  tr{border-bottom:1px solid var(--rule);padding:13px 0}
+  td{border:0;padding:0;display:inline}
+  td.n{display:block;font-weight:600;margin:3px 0}
+  td.d{display:inline;margin-right:8px}
+  td.t{display:inline;margin-right:8px}
+  td.dim::before{content:"· ";color:var(--sand)}
+  td.dim{display:inline;margin-right:8px;font-size:11.5px}
+  .wkrow{border-bottom:1px solid var(--sand);padding:22px 0 6px}
+  .wkrow td{display:block;padding:0;border:0}
+}
+@media (max-width:380px){
+  :root{--pad:14px}
+  .ref,.ref img{width:96px;height:170px}
+  .eyebrow{gap:7px;font-size:10px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hd">
+    <div class="hd-top">
+      <h1>Swatti &middot; Content Plan</h1>
+      <span class="range">15 Sept &ndash; 14 Oct</span>
+    </div>
+    <div class="views" role="tablist">
+      <button role="tab" id="v-week" aria-selected="true">This week</button>
+      <button role="tab" id="v-month" aria-selected="false">Full month</button>
+      <span class="spacer"></span>
+      <button class="editbtn" id="editbtn">Prince: edit</button>
+    </div>
+    <div class="sync" id="sync"></div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div id="weekview">
+    <nav class="weeks" role="tablist" id="weeknav"></nav>
+    <div class="editbar">
+      <b>Edit mode on.</b> Tap any reference box to upload a shot from your phone or Mac. Titles, shot lists
+      and on-screen text are all editable below. Everything saves as you type.
+    </div>
+    <p class="hint">Tap any post to open it. Tick it once you've filmed it.</p>
+    <details class="how">
+      <summary>How this works</summary>
+      <ol>
+        <li>Each Sunday, <b>tell us what your week looks like</b> in the box below &mdash; type it or record it. Prince plans the filming around your real days.</li>
+        <li>You film on <b>two mornings a week</b>. Saturday is the main one; the course morning is free footage.</li>
+        <li>Every post has a step-by-step list. <b>No settings, no angles to learn.</b></li>
+        <li>Send the clips to Prince. We edit, caption and schedule. <b>Nothing goes live without you seeing it first.</b></li>
+        <li>Went somewhere, did something? <b>Just film it.</b> We'll find a place for it.</li>
+      </ol>
+    </details>
+    <div id="weekbody"></div>
+  </div>
+
+  <div id="monthview" hidden>
+    <div class="counts" id="counts"></div>
+    <div class="block">
+      <h2>The weekly rhythm &mdash; the same every week</h2>
+      <ol class="rhythm">
+        <li><b>Sunday</b> &mdash; Swatti writes or records her week ahead.</li>
+        <li><b>Monday</b> &mdash; Prince finalises that week's shots against her real days.</li>
+        <li><b>Tuesday morning</b> &mdash; course footage, filmed while she's already there.</li>
+        <li><b>Saturday morning</b> &mdash; the main block, roughly two hours. Covers <b>next</b> week's posts.</li>
+        <li><b>Sunday to Tuesday</b> &mdash; edit, captions, hashtags.</li>
+        <li><b>Wednesday</b> &mdash; Swatti approves the cuts. <b>Thursday</b> &mdash; scheduled.</li>
+      </ol>
+      <p class="hint" style="margin-top:16px">Everything is filmed <b>a week before it goes out</b>. That gap
+        is what stops this turning into a panic, and means a bad week costs us nothing.</p>
+    </div>
+    <div class="tablewrap"><table id="monthtable"></table></div>
+    <div class="block">
+      <h2>The 15 reels</h2>
+      <div class="pil"><span class="c">5</span><span class="nm">6AM</span><span class="ds">Morning and home routine. Real sound, no music, no talking.</span></div>
+      <div class="pil"><span class="c">5</span><span class="nm">Soft Life Notes</span><span class="ds">One honest line of text over quiet footage. The line does the work.</span></div>
+      <div class="pil"><span class="c">3</span><span class="nm">Getting Ready</span><span class="ds">Outfit, skincare, fragrance. Hands and mirrors, no face needed.</span></div>
+      <div class="pil"><span class="c">2</span><span class="nm">Studio Days</span><span class="ds">The interior design course. The only pillar with a shoot built into her week.</span></div>
+    </div>
+    <div class="block">
+      <h2>The 5 carousels</h2>
+      <div class="pil"><span class="c">1</span><span class="nm">Who she is</span><span class="ds">Built entirely from photos already on her phone.</span></div>
+      <div class="pil"><span class="c">2</span><span class="nm">Interiors &amp; travel</span><span class="ds">Saveable lists. The caption carries the value.</span></div>
+      <div class="pil"><span class="c">1</span><span class="nm">Personal growth</span><span class="ds">The reflection post that replaces quote graphics.</span></div>
+      <div class="pil"><span class="c">1</span><span class="nm">Month one recap</span><span class="ds">Course progress. Milestones beat ordinary days.</span></div>
+    </div>
+  </div>
+
+  <footer>Two shoot mornings a week. 15 reels, 5 carousels, plus whatever she films along the way.</footer>
+</div>
+
+<input type="file" id="filepick" accept="image/*" multiple hidden>
+<input type="file" id="audiopick" accept="audio/*" hidden>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="plan-data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

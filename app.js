@@ -294,6 +294,25 @@
   function holdWords(h) {
     return h === 'hand' ? 'In your hand' : h === 'tripod' ? 'On the tripod' : '';
   }
+  var ANGLES = ['WIDE', 'MEDIUM', 'CLOSE', 'MIRROR', 'POV', 'PHOTO'];
+
+  /* Writing a shot list back. Shots are addressed by their POSITION, so the
+     references pinned to them have to move with them: adding on the end touches
+     nothing, removing shot 3 slides 4,5,6… down one. Do the re-key here, in one
+     place, or a deleted line silently steals the frames off the shot below it. */
+  function saveShots(p, shots) {
+    var e = Object.assign({}, get('edit:' + p.id, {}));
+    e.shots = shots;
+    put('edit:' + p.id, e);
+  }
+  function shiftRefsAfterRemove(pid, removed, total) {
+    var gone = get('refs:' + slotKey(pid, removed), []) || [];
+    gone.forEach(function (t) { if (isIdb(t)) Media.del(t); });
+    for (var i = removed; i < total - 1; i++) {
+      put('refs:' + slotKey(pid, i), get('refs:' + slotKey(pid, i + 1), []) || []);
+    }
+    put('refs:' + slotKey(pid, total - 1), []);
+  }
   function allPosts() { var a = []; PLAN.forEach(function (w) { a = a.concat(w.posts); }); return a; }
   function findPost(id) { return allPosts().filter(function (p) { return p.id === id; })[0]; }
 
@@ -433,6 +452,34 @@
     return h;
   }
 
+  /* Studio-only: put another shot on the end of any post, with its own upload
+     frame. New shots go on the END on purpose — appending cannot disturb the
+     references already sitting on shots 1..n. */
+  function addShotHTML(p) {
+    return '<div class="addshot studio-only" id="as-' + p.id + '">' +
+      '<button class="addshotbtn" data-addshot="' + p.id + '">+ Add a shot</button>' +
+      '<div class="asform">' +
+        '<div class="asrow">' +
+          '<label>Angle<select data-asf="a">' +
+            ANGLES.map(function (a) { return '<option value="' + a + '">' + a + '</option>'; }).join('') +
+            '<option value="">Not a shot &mdash; just a step</option></select></label>' +
+          '<label>Camera<select data-asf="h">' +
+            '<option value="tripod">On the tripod</option>' +
+            '<option value="hand">In your hand</option>' +
+            '<option value="">Doesn&rsquo;t matter</option></select></label>' +
+          '<label>Seconds<input type="number" min="1" max="60" step="1" value="4" data-asf="s"></label>' +
+        '</div>' +
+        '<label class="asdo">Shot name &mdash; what she actually does' +
+          '<input type="text" data-asf="do" placeholder="Close on the coffee being poured"></label>' +
+        '<div class="asbtns">' +
+          '<button class="assave" data-assave="' + p.id + '">Add this shot</button>' +
+          '<button class="ascancel" data-ascancel="' + p.id + '">Cancel</button>' +
+        '</div>' +
+        '<p class="edtip">It lands at the bottom of the list with its own upload box. ' +
+          'Put *stars* around anything that should come out bold.</p>' +
+      '</div></div>';
+  }
+
   function shotHTML(p, sh, i) {
     var k = slotKey(p.id, i), dom = slotDom(k);
     var meta = '<span class="s-n">' + (i + 1) + '</span>';
@@ -441,7 +488,9 @@
     if (hw) meta += '<span class="hold">' + hw + '</span>';
     if (sh.s) meta += '<span class="secs">' + sh.s + 's</span>';
     return '<li class="shot">' +
-      '<div class="s-txt"><div class="s-meta">' + meta + '</div>' +
+      '<div class="s-txt"><div class="s-meta">' + meta +
+        '<button class="s-kill studio-only" data-killshot="' + p.id + '" data-i="' + i +
+        '" title="Remove this shot">Remove</button></div>' +
         '<p class="s-do">' + (sh.do || '') + '</p></div>' +
       '<div class="s-med" data-zone="' + k + '">' +
         '<div class="refstrip" id="' + dom + '">' + refsHTML(k) + '</div>' +
@@ -476,6 +525,24 @@
       });
     });
   }
+
+  /* A frame that cannot be decoded (an iPhone HEVC .mov in a browser that has no
+     codec for it, a Supabase URL that 404s) used to sit there as a black box with
+     no explanation. Say so instead, and keep the delete button reachable. */
+  document.addEventListener('error', function (e) {
+    var el = e.target;
+    if (!el || !el.tagName) return;
+    if (el.tagName !== 'IMG' && el.tagName !== 'VIDEO') return;
+    var box = el.closest && el.closest('.ref');
+    if (!box || box.querySelector('.dead')) return;
+    el.style.visibility = 'hidden';
+    var spin = box.querySelector('.loading');
+    if (spin) spin.remove();
+    box.insertAdjacentHTML('afterbegin',
+      '<span class="dead">' + (el.tagName === 'VIDEO'
+        ? 'This browser can&rsquo;t play this clip. Export it as MP4.'
+        : 'Couldn&rsquo;t open this file.') + '</span>');
+  }, true);
 
   function pipeHTML(p) {
     var s = stageOf(p);
@@ -526,6 +593,7 @@
           '<p class="label">Shot to copy</p></div>' +
         '<ol class="shots">' +
           shots.map(function (sh, i) { return shotHTML(p, sh, i); }).join('') + '</ol>' +
+        addShotHTML(p) +
         '<p class="shotsum">' +
           (camShots ? '<b>' + camShots + (camShots === 1 ? ' shot' : ' shots') + '</b>' +
             (secs ? ' &middot; about <b>' + secs + ' seconds</b> of footage in total. ' : '. ')
@@ -840,6 +908,71 @@
       return;
     }
 
+    var asOpen = t.closest('[data-addshot]');
+    if (asOpen) {
+      e.stopPropagation();
+      var asw = document.getElementById('as-' + asOpen.getAttribute('data-addshot'));
+      if (asw) {
+        var on = asw.classList.toggle('open');
+        if (on) { var f = asw.querySelector('[data-asf="do"]'); if (f) f.focus(); }
+      }
+      return;
+    }
+
+    var asC = t.closest('[data-ascancel]');
+    if (asC) {
+      e.stopPropagation();
+      var cw = document.getElementById('as-' + asC.getAttribute('data-ascancel'));
+      if (cw) cw.classList.remove('open');
+      return;
+    }
+
+    var asS = t.closest('[data-assave]');
+    if (asS) {
+      e.stopPropagation();
+      var apid = asS.getAttribute('data-assave'), ap2 = findPost(apid);
+      var wrap = document.getElementById('as-' + apid);
+      if (!ap2 || !wrap) return;
+      var val = function (n) { var el = wrap.querySelector('[data-asf="' + n + '"]'); return el ? el.value.trim() : ''; };
+      var doTxt = val('do');
+      if (!doTxt) {
+        var di = wrap.querySelector('[data-asf="do"]');
+        if (di) { di.focus(); di.placeholder = 'Say what she does in this shot first'; }
+        return;
+      }
+      var sh = { do: toRich(doTxt) };
+      var aVal = val('a'), hVal = val('h'), sVal = parseInt(val('s'), 10);
+      if (aVal) sh.a = aVal;
+      if (hVal) sh.h = hVal;
+      if (sVal > 0) sh.s = sVal;
+      saveShots(ap2, shotsOf(ap2).concat([sh]));
+      openSet[apid] = true;
+      renderWeek();
+      var newIdx = shotsOf(ap2).length - 1;
+      slotMsg(slotKey(apid, newIdx), '<b>Shot added.</b> Drop the reference for it here.', 'ok');
+      var frame = document.getElementById(slotDom(slotKey(apid, newIdx)));
+      if (frame) frame.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      flash('Shot added.');
+      return;
+    }
+
+    var ks = t.closest('[data-killshot]');
+    if (ks) {
+      e.stopPropagation();
+      var kpid = ks.getAttribute('data-killshot'), ki = +ks.getAttribute('data-i');
+      var kp = findPost(kpid);
+      if (!kp) return;
+      var kshots = shotsOf(kp);
+      var label = (kshots[ki] && kshots[ki].do) ? toPlain(kshots[ki].do) : 'this shot';
+      if (!window.confirm('Remove shot ' + (ki + 1) + ' — "' + label + '"?\n\nAnything uploaded on it goes too. The shots below it move up.')) return;
+      shiftRefsAfterRemove(kpid, ki, kshots.length);
+      saveShots(kp, kshots.filter(function (_, n) { return n !== ki; }));
+      openSet[kpid] = true;
+      renderWeek();
+      flash('Shot removed.');
+      return;
+    }
+
     var stg = t.closest('[data-stage]');
     if (stg) {
       e.stopPropagation();
@@ -859,6 +992,8 @@
       if (box) {
         var on = box.classList.toggle('open');
         edt.textContent = on ? 'Done editing' : 'Edit the words';
+        // closing it redraws the card, so a rewritten shot list actually appears
+        if (!on) { openSet[edt.getAttribute('data-edtoggle')] = true; renderWeek(); }
       }
       return;
     }
@@ -1116,9 +1251,14 @@
     syncBadge();
   }
 
+  /* input.files is LIVE — clearing input.value empties the very FileList we are
+     holding, so the picked files must be copied out into a real array FIRST.
+     Getting this the wrong way round is what made every pick report
+     "Nothing came through" (fixed build 6). */
   document.getElementById('filepick').addEventListener('change', function () {
-    var files = this.files, id = pickTarget;
+    var files = Array.prototype.slice.call(this.files || []), id = pickTarget;
     this.value = '';
+    if (!files.length) return;          // picker was cancelled — say nothing
     addImages(id, files);
   });
 

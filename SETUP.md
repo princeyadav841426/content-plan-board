@@ -15,25 +15,58 @@ any unlisted link: whoever has it can read it.
 
 ---
 
-## Using it
+## Two views, one link
 
-**Her side.** Opens the link. Sees this week. Taps a post, reads the shot list, films it, ticks
-it. Leaves a note on anything that didn't work. Writes or records what her week looks like in
-the box at the top.
+Top right of the header: **Swatti** / **Studio**. Same page, two interfaces. The choice is
+remembered on that device and is never shared — switching to Studio on your laptop cannot
+change what she sees on her phone. She opens the link and lands in her view every time.
+`swatti.cutlume.com/#studio` opens straight into yours.
 
-**Your side.** Tap **"Prince: edit"** in the header. Then:
+**Swatti's view.** This week, in order. Each post opens to a step-by-step shot list, the line to
+say or put on screen, and a note box. One tick box per post. Plus the weekly "what does your
+week look like" box she types or records into. Nothing about the pipeline, no counts, no
+editing.
 
-- **Reference shots** — drag photos straight onto the strip inside any post. Several at once is
-  fine. Or tap the **+** to browse, or copy an image and press ⌘V with a post open.
-- **Shot lists, titles, on-screen text** — all editable inline. Saves as you type.
-- Tap **Done editing** and it goes back to her clean view.
+**Studio (yours).** Everything above, plus:
+
+- **Where it is** — a five-step pipeline on every post: Planned · Filmed · Edited · Approved ·
+  Posted. Tap a step to set it. Her tick box sets Filmed; the rest is yours.
+- **From Swatti** — a sidebar inbox collecting everything she's sent: week notes, voice notes,
+  per-post comments. Tap one to jump to it.
+- **Edit the words** — a button inside each post opens the title, one-liner, shot list and
+  on-screen text for editing. Saves as you type.
+- The month calendar carries the pipeline stage, the counts and the full schedule table.
+
+Down the left on a laptop: the month's progress, a mini calendar of every post (a corner mark
+is a filming morning), and the week list. On a phone that sidebar moves into **Full month**.
+
+---
+
+## Adding reference shots
+
+Available in **both views**, on every post, with no mode to switch on first — that was the thing
+that used to be hidden.
+
+- **Drag photos onto the strip.** Several at once is fine.
+- **Tap the box** to browse — this is the one that works on a phone or iPad.
+- **⌘V** pastes a copied image into whichever post is open.
 
 Photos are shrunk in the browser before they're stored, so the page stays fast. Landscape
-references are shown whole, never cropped or squashed.
+references are shown whole, never cropped or squashed. Drop a video and it says so rather than
+silently ignoring it — video references need live sync (below) switched on.
 
-Voice notes record straight in the page — it's an https link, so the microphone works. Safari
-asks for permission the first time. There's always an **"or choose an audio file"** button
-beside it if she'd rather send a file.
+If a photo doesn't stick, the page now tells you why instead of failing quietly. Almost always
+that means the browser's storage is full, which live sync fixes.
+
+## Voice notes
+
+Record straight in the page — it's an https link, so the microphone works. Safari asks for
+permission the first time.
+
+- **Throw this one away** appears while recording, if it started badly.
+- After it saves: **Record again** replaces it, **Delete** removes it. As many retakes as she
+  wants — only the last one is kept.
+- **"or choose an audio file"** is always there if she'd rather send a file.
 
 ---
 
@@ -70,9 +103,9 @@ cd "/Users/mac/VSS Media/Swatti Tomar/Common/Tools/swatti-plan-site" && git add 
 
 GitHub rebuilds in about a minute. Same link, every time.
 
-**Next month:** open `plan-data.js`, replace the content, push. Every tick and note stays where
-it is. Change `storeKey` at the top of that file if you want the new month to start with a
-clean set of tick boxes.
+**Next month:** open `plan-data.js`, replace the content, push. At the top of that file set
+`start` and `end` to the new month's real dates — that's what draws the calendar — and change
+`storeKey` if you want the new month to start with a clean set of tick boxes.
 
 **The domain:** `swatti.cutlume.com` is a DNS-only (grey cloud) CNAME to
 `princeyadav841426.github.io` in your Cloudflare zone. Leave it unproxied — turning the orange

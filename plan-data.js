@@ -4,7 +4,14 @@
    else changes — the link, the ticks and the notes all stay put.
    ───────────────────────────────────────────────────────────── */
 
-window.PLAN_META = { label: "15 Sept – 14 Oct", storeKey: "sep15" };
+/* label = what the header shows.  start/end = the real dates, used to draw the
+   calendar.  storeKey = change it and next month starts with empty tick boxes. */
+window.PLAN_META = {
+  label: "15 Sept – 14 Oct",
+  start: "2026-09-15",
+  end:   "2026-10-14",
+  storeKey: "sep15"
+};
 
 window.PLAN = [
 {w:1,head:"Week 1",sub:"15 – 21 Sept",note:"Her introduction. Two of these carry her voice for the first time.",

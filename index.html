@@ -283,6 +283,14 @@ button.btn.quiet:hover{background:var(--paper-2)}
   font-variant-numeric:tabular-nums}
 .ref .loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   font-size:10.5px;color:var(--ink-3);background:var(--sand-wash);text-align:center;padding:6px}
+.ref.isvid{cursor:pointer}
+.ref.isvid video{pointer-events:none}
+.ref .playpause{position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;
+  border-radius:50%;background:rgba(13,12,11,.55);pointer-events:none;transition:opacity .15s}
+.ref .playpause::after{content:"";position:absolute;left:52%;top:50%;transform:translate(-50%,-50%);
+  border-style:solid;border-width:7px 0 7px 12px;border-color:transparent transparent transparent #fff}
+.ref.isvid.on .playpause{opacity:0}
+.ref.isvid.on .clip{opacity:0}
 .ref .del{position:absolute;top:4px;right:4px;background:var(--paper);border:1px solid var(--rule-2);
   width:26px;height:26px;font-size:14px;line-height:1;cursor:pointer;color:var(--ink-2);padding:0}
 .ref.add{border:1px dashed var(--rule-2);cursor:pointer;flex-direction:column;gap:5px;font-size:10.5px;
@@ -560,7 +568,7 @@ body[data-role="creator"] .stagepill{display:none}
     </div>
 
     <footer>Two shoot mornings a week. 15 reels, 5 carousels, plus whatever she films along the way.
-      <span style="float:right;font-variant-numeric:tabular-nums">build 6</span></footer>
+      <span style="float:right;font-variant-numeric:tabular-nums">build 7</span></footer>
   </main>
 </div>
 
@@ -573,8 +581,8 @@ body[data-role="creator"] .stagepill{display:none}
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <!-- bump ?v= on every push so nobody is ever looking at a cached old build -->
-<script src="config.js?v=6"></script>
-<script src="plan-data.js?v=6"></script>
-<script src="app.js?v=6"></script>
+<script src="config.js?v=7"></script>
+<script src="plan-data.js?v=7"></script>
+<script src="app.js?v=7"></script>
 </body>
 </html>

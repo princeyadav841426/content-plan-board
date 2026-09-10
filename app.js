@@ -437,12 +437,12 @@
       var vid = isVideoRef(src), lazy = isIdb(src);
       var media = vid
         ? '<video ' + (lazy ? 'data-tok="' + src + '"' : 'src="' + src + '"') +
-          ' controls muted playsinline preload="metadata"></video>'
+          ' loop muted playsinline preload="metadata"></video>'
         : '<img ' + (lazy ? 'data-tok="' + src + '"' : 'src="' + src + '"') +
           ' alt="Reference ' + (i + 1) + '" loading="lazy">';
-      h += '<div class="ref">' + media +
+      h += '<div class="ref' + (vid ? ' isvid' : '') + '">' + media +
            (lazy ? '<span class="loading">…</span>' : '') +
-           (vid ? '<span class="clip">CLIP</span>' : '') +
+           (vid ? '<span class="clip">CLIP</span><span class="playpause" aria-hidden="true"></span>' : '') +
            '<button class="del" data-del="' + k + '" data-i="' + i + '" aria-label="Remove this reference">&times;</button></div>';
     });
     h += '<div class="ref add" data-add="' + k + '" role="button" tabindex="0" ' +
@@ -509,6 +509,31 @@
   }
 
   // fill in anything held on this device; called after any strip is written
+  /* Reference clips: exactly one runs at a time. Tapping a clip loops it,
+     tapping it again pauses it, tapping a different clip stops the first.
+     The .on class (which hides the play triangle) is driven by the video's
+     own play/pause events, never set by hand, so the badge can't get stuck. */
+  function playClip(vid) {
+    if (!vid) return;
+    if (vid.paused) {
+      Array.prototype.forEach.call(document.querySelectorAll('.ref.isvid video'), function (o) {
+        if (o !== vid) o.pause();
+      });
+      var pr = vid.play();
+      if (pr && pr.catch) pr.catch(function () {});
+    } else {
+      vid.pause();
+    }
+  }
+  document.addEventListener('play', function (e) {
+    var r = e.target.closest && e.target.closest('.ref.isvid');
+    if (r) r.classList.add('on');
+  }, true);
+  document.addEventListener('pause', function (e) {
+    var r = e.target.closest && e.target.closest('.ref.isvid');
+    if (r) r.classList.remove('on');
+  }, true);
+
   function hydrateRefs(root) {
     var els = (root || document).querySelectorAll('[data-tok]');
     Array.prototype.forEach.call(els, function (el) {
@@ -867,6 +892,14 @@
 
   document.addEventListener('click', function (e) {
     var t = e.target;
+
+    // reference clip: one plays at a time, tap toggles it
+    var vwrap = t.closest && t.closest('.ref.isvid');
+    if (vwrap && !t.closest('.del')) {
+      e.stopPropagation();
+      playClip(vwrap.querySelector('video'));
+      return;
+    }
 
     var rb = t.closest('.roleswitch [data-role]');
     if (rb) { setRole(rb.getAttribute('data-role')); window.scrollTo({ top: 0 }); return; }

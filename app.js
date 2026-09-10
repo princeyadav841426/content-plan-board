@@ -243,7 +243,57 @@
      edit boxes speak stars instead and it is converted on the way in and out. */
   function toPlain(s) { return String(s == null ? '' : s).replace(/<\/?b>/gi, '*').replace(/<[^>]+>/g, ''); }
   function toRich(s) { return String(s == null ? '' : s).replace(/\*([^*\n]+)\*/g, '<b>$1</b>'); }
+
+  /* One shot per line in the edit box:
+       WIDE | tripod | what she does | 15
+     Two fields means angle and action; one field is a step that isn't a shot
+     (the voiceover instructions, for instance). */
+  function shotsToText(shots) {
+    return shots.map(function (s) {
+      var bits = [];
+      if (s.a) bits.push(s.a);
+      if (s.a && s.h) bits.push(s.h);
+      bits.push(toPlain(s.do || ''));
+      if (s.s) bits.push(String(s.s));
+      return bits.join(' | ');
+    }).join('\n');
+  }
+  function textToShots(txt) {
+    return String(txt || '').split('\n').filter(function (l) { return l.trim(); })
+      .map(function (line) {
+        var parts = line.split('|').map(function (x) { return x.trim(); });
+        if (parts.length === 1) return { do: toRich(parts[0]) };
+        var o = { a: parts[0].toUpperCase() };
+        if (parts.length === 2) { o.do = toRich(parts[1]); return o; }
+        // three or more: angle | hold | action | seconds
+        o.h = /hand/i.test(parts[1]) ? 'hand' : 'tripod';
+        o.do = toRich(parts[2]);
+        var s = parseInt(parts[3], 10);
+        if (s) o.s = s;
+        return o;
+      });
+  }
   function F(p, f) { var e = get('edit:' + p.id, {}); return e[f] !== undefined ? e[f] : p[f]; }
+
+  /* Every shot owns its own media slot, so a reference lives against the shot it
+     belongs to rather than in one pile at the top of the post.
+       storage key   refs:r2#3
+       element id    refs-r2__3
+     A bare post id with no # is the old post-level pile, still read and rendered
+     so nothing anybody has already uploaded disappears. */
+  function slotKey(pid, i) { return pid + '#' + i; }
+  function slotDom(k) { return 'refs-' + String(k).replace('#', '__'); }
+  function slotPost(k) { return String(k).split('#')[0]; }
+  function shotsOf(p) {
+    var s = F(p, 'shots');
+    return Array.isArray(s) ? s : [];
+  }
+  function shotSeconds(p) {
+    return shotsOf(p).reduce(function (a, s) { return a + (parseInt(s.s, 10) || 0); }, 0);
+  }
+  function holdWords(h) {
+    return h === 'hand' ? 'In your hand' : h === 'tripod' ? 'On the tripod' : '';
+  }
   function allPosts() { var a = []; PLAN.forEach(function (w) { a = a.concat(w.posts); }); return a; }
   function findPost(id) { return allPosts().filter(function (p) { return p.id === id; })[0]; }
 
@@ -259,6 +309,7 @@
     put('tick:' + p.id, n >= 1);
   }
   function isDone(p) { return stageOf(p) >= 1; }
+  function isPosted(p) { return stageOf(p) >= 4; }
 
   function monthStats() {
     var st = { total: 0, filmed: 0, edited: 0, posted: 0, reels: 0, cars: 0 };
@@ -294,8 +345,8 @@
       var ps = POSTMAP[key(d)] || [];
       var cls = (out ? 'out' : '') + (SHOOTMAP[key(d)] ? ' shootday' : '');
       if (!ps.length) { h += '<span class="' + cls + '">' + d.getDate() + '</span>'; continue; }
-      var done = ps.every(isDone);
-      h += '<button class="' + cls + (done ? ' done' : '') +
+      var done = ps.every(isDone), post = ps.every(isPosted);
+      h += '<button class="' + cls + (post ? ' posted' : done ? ' done' : '') +
            (ps[0].__wi === cur ? ' inwk' : '') + '" data-goto="' + ps[0].id + '" title="' +
            esc(F(ps[0], 'title')) + '">' + d.getDate() + '<b></b></button>';
     }
@@ -305,7 +356,7 @@
   function weekList() {
     return '<ul class="wklist">' + PLAN.map(function (w, i) {
       var dots = w.posts.map(function (p) {
-        return '<i class="' + (isDone(p) ? 'on' : '') + '"></i>';
+        return '<i class="' + (isPosted(p) ? 'on posted' : isDone(p) ? 'on' : '') + '"></i>';
       }).join('');
       return '<li><button data-week="' + i + '" aria-current="' + (i === cur) + '">' +
         '<span class="wk-n">' + w.head + '<small>' + w.sub + '</small></span>' +
@@ -360,8 +411,8 @@
 
   /* ───────────────── post card ───────────────── */
 
-  function refsHTML(p) {
-    var refs = get('refs:' + p.id, []) || [];
+  function refsHTML(k) {
+    var refs = get('refs:' + k, []) || [];
     var h = '';
     refs.forEach(function (src, i) {
       var vid = isVideoRef(src), lazy = isIdb(src);
@@ -373,12 +424,39 @@
       h += '<div class="ref">' + media +
            (lazy ? '<span class="loading">…</span>' : '') +
            (vid ? '<span class="clip">CLIP</span>' : '') +
-           '<button class="del" data-del="' + p.id + '" data-i="' + i + '" aria-label="Remove">&times;</button></div>';
+           '<button class="del" data-del="' + k + '" data-i="' + i + '" aria-label="Remove this reference">&times;</button></div>';
     });
-    h += '<div class="ref add' + (refs.length ? '' : ' wide') + '" data-add="' + p.id + '" role="button" tabindex="0">' +
-         '<span class="plus">+</span>' + (refs.length ? 'Add a shot'
-           : 'Add shots &amp; clips<small>Drag photos or clips here, or tap to browse</small>') + '</div>';
+    h += '<div class="ref add" data-add="' + k + '" role="button" tabindex="0" ' +
+         'aria-label="Add a reference photo or clip">' +
+         '<span class="plus">+</span>' + (refs.length ? 'Add another'
+           : 'Photo or clip<small>Drag it here, or tap</small>') + '</div>';
     return h;
+  }
+
+  function shotHTML(p, sh, i) {
+    var k = slotKey(p.id, i), dom = slotDom(k);
+    var meta = '<span class="s-n">' + (i + 1) + '</span>';
+    if (sh.a) meta += '<span class="ang">' + esc(sh.a) + '</span>';
+    var hw = holdWords(sh.h);
+    if (hw) meta += '<span class="hold">' + hw + '</span>';
+    if (sh.s) meta += '<span class="secs">' + sh.s + 's</span>';
+    return '<li class="shot">' +
+      '<div class="s-txt"><div class="s-meta">' + meta + '</div>' +
+        '<p class="s-do">' + (sh.do || '') + '</p></div>' +
+      '<div class="s-med" data-zone="' + k + '">' +
+        '<div class="refstrip" id="' + dom + '">' + refsHTML(k) + '</div>' +
+        '<p class="smsg" id="smsg-' + dom + '"></p>' +
+      '</div></li>';
+  }
+
+  // anything uploaded against the whole post before the shot table existed
+  function legacyHTML(p) {
+    var old = get('refs:' + p.id, []) || [];
+    if (!old.length) return '';
+    return '<p class="label">Other references on this post</p>' +
+      '<div class="s-med" data-zone="' + p.id + '" style="max-width:100%">' +
+        '<div class="refstrip" id="' + slotDom(p.id) + '">' + refsHTML(p.id) + '</div>' +
+        '<p class="smsg" id="smsg-' + slotDom(p.id) + '"></p></div>';
   }
 
   // fill in anything held on this device; called after any strip is written
@@ -414,11 +492,15 @@
     var flags = '';
     if (p.vo) flags += '<span class="flag">Voiceover</span>';
     if (p.kids) flags += '<span class="flag">Kids &mdash; partial</span>';
-    var steps = F(p, 'steps') || [];
+    var shots = shotsOf(p);
     var say = F(p, 'say');
     var note = get('note:' + p.id, '');
+    var secs = shotSeconds(p);
+    var camShots = shots.filter(function (s) { return !!s.a; }).length;
+    if (isPosted(p)) flags += '<span class="posted">Posted</span>';
 
-    return '<article class="card' + (done ? ' is-done' : '') + (open ? ' open' : '') + '" id="card-' + p.id + '">' +
+    return '<article class="card' + (done ? ' is-done' : '') + (isPosted(p) ? ' is-posted' : '') +
+      (open ? ' open' : '') + '" id="card-' + p.id + '">' +
       '<div class="head" data-open="' + p.id + '">' +
         '<span class="daycol"><span class="dw">' + dw + '</span><span class="dn">' + dn + '</span></span>' +
         '<span class="htext">' +
@@ -440,16 +522,17 @@
           '<div><span class="k">Posts</span><span class="v">' + p.date + '</span></div>' +
         '</div>' +
         pipeHTML(p) +
-        '<div class="refs"><p class="label">Reference shots &amp; clips</p>' +
-          '<div class="refzone" data-zone="' + p.id + '">' +
-            '<div class="refstrip" id="refs-' + p.id + '">' + refsHTML(p) + '</div></div>' +
-          '<p class="drophint" id="drop-' + p.id + '"><b>Photos and video clips, up to ' +
-            CLIP_SECONDS + ' seconds each.</b> Drag them straight onto the strip &mdash; several at ' +
-            'once is fine &mdash; or tap it to browse. On a Mac you can also copy an image and ' +
-            'press &#8984;V with this post open.</p>' +
-        '</div>' +
-        '<p class="label">What to film</p>' +
-        '<ol class="film">' + steps.map(function (f) { return '<li>' + f + '</li>'; }).join('') + '</ol>' +
+        '<div class="shothead"><p class="label">What to film</p>' +
+          '<p class="label">Shot to copy</p></div>' +
+        '<ol class="shots">' +
+          shots.map(function (sh, i) { return shotHTML(p, sh, i); }).join('') + '</ol>' +
+        '<p class="shotsum">' +
+          (camShots ? '<b>' + camShots + (camShots === 1 ? ' shot' : ' shots') + '</b>' +
+            (secs ? ' &middot; about <b>' + secs + ' seconds</b> of footage in total. ' : '. ')
+            : '') +
+          'Drop a photo or a clip (up to ' + CLIP_SECONDS + ' seconds) into any row so Swatti can ' +
+          'see the shot instead of reading it. It stays there until somebody deletes it.</p>' +
+        legacyHTML(p) +
         (say ? '<div class="saytxt"><p class="label">' + (p.vo ? 'What to say' : 'Text on screen') +
                '</p><p>' + esc(say) + '</p></div>' : '') +
         (p.note ? '<details class="why"><summary>Why this one works</summary><p>' + p.note + '</p></details>' : '') +
@@ -458,10 +541,13 @@
           '<div class="edfields">' +
             '<p class="edlabel">Title</p><textarea style="min-height:48px" data-edit="' + p.id + '" data-field="title">' + esc(F(p, 'title')) + '</textarea>' +
             '<p class="edlabel">One-line description</p><textarea style="min-height:48px" data-edit="' + p.id + '" data-field="what">' + esc(F(p, 'what')) + '</textarea>' +
-            '<p class="edlabel">Shot list &mdash; one step per line</p>' +
-            '<p class="edtip">Put *stars* around anything that should come out bold.</p>' +
-            '<textarea style="min-height:150px" data-edit="' + p.id + '" data-field="steps">' +
-              esc(steps.map(toPlain).join('\n')) + '</textarea>' +
+            '<p class="edlabel">Shot list &mdash; one shot per line</p>' +
+            '<p class="edtip">Format: <b>ANGLE | tripod or hand | what she does | seconds</b>. ' +
+              'Angles: WIDE, MEDIUM, CLOSE, MIRROR, POV, PHOTO. A line with no bars is a step ' +
+              'that isn&rsquo;t a shot. Put *stars* around anything that should come out bold. ' +
+              'Adding or removing a line shifts the reference frames below it.</p>' +
+            '<textarea style="min-height:180px" data-edit="' + p.id + '" data-field="shots">' +
+              esc(shotsToText(shots)) + '</textarea>' +
             '<p class="edlabel">' + (p.vo ? 'Voiceover' : 'Text on screen') + '</p><textarea style="min-height:78px" data-edit="' + p.id + '" data-field="say">' + esc(say || '') + '</textarea>' +
           '</div>' +
         '</div>' +
@@ -538,7 +624,12 @@
         '<details class="how"><summary>How this works</summary><ol>' +
         '<li>Each Sunday, <b>tell us what your week looks like</b> in the box above &mdash; type it or record it.</li>' +
         '<li>You film on <b>two mornings a week</b>. Saturday is the main one; the course morning is free footage.</li>' +
-        '<li>Every post has a step-by-step list. <b>No settings, no angles to learn.</b></li>' +
+        '<li>Every post is a list of shots. Each one says <b>how close to stand</b> ' +
+        '(wide, medium, close), whether the phone is on the tripod or in your hand, ' +
+        '<b>what you actually do</b>, and how many seconds to film. Nothing to set up.</li>' +
+        '<li>Next to each shot there\'s a small frame. When Prince drops a photo or a clip ' +
+        'in it, <b>that\'s the shot to copy</b> — you can watch it instead of reading it.</li>' +
+        '<li>A post turns <b>green</b> once it\'s live on your page.</li>' +
         '<li>Send the clips to Prince. We edit, caption and schedule. <b>Nothing goes live without you seeing it first.</b></li>' +
         '<li>Went somewhere, did something? <b>Just film it.</b> We\'ll find a place for it.</li>' +
         '</ol></details>');
@@ -567,7 +658,8 @@
         '<span class="dnum">' + d.getDate() +
           (SHOOTMAP[key(d)] ? '<em>Shoot</em>' : '') + '</span>' +
         ps.map(function (p) {
-          return '<button class="chip' + (isDone(p) ? ' done' : '') + '" data-goto="' + p.id + '">' +
+          return '<button class="chip' + (isPosted(p) ? ' posted' : isDone(p) ? ' done' : '') +
+            '" data-goto="' + p.id + '">' +
             '<span class="ct">' + p.type + '</span>' +
             '<span class="cn">' + esc(F(p, 'title')) + '</span></button>';
         }).join('') +
@@ -608,14 +700,24 @@
   var PILLARS =
     '<div class="block"><h3>The 15 reels</h3>' +
     '<div class="pil"><span class="c">5</span><span class="nm">6AM</span><span class="ds">Morning and home routine. Real sound, no music, no talking.</span></div>' +
-    '<div class="pil"><span class="c">5</span><span class="nm">Soft Life Notes</span><span class="ds">One honest line of text over quiet footage. The line does the work.</span></div>' +
-    '<div class="pil"><span class="c">3</span><span class="nm">Getting Ready</span><span class="ds">Outfit, skincare, fragrance. Hands and mirrors, no face needed.</span></div>' +
-    '<div class="pil"><span class="c">2</span><span class="nm">Studio Days</span><span class="ds">The interior design course. The only pillar with a shoot built into her week.</span></div>' +
+    '<div class="pil"><span class="c">3</span><span class="nm">Getting Ready</span><span class="ds">Skincare, makeup, getting dressed. Hands and mirrors, no face needed.</span></div>' +
+    '<div class="pil"><span class="c">2</span><span class="nm">Strong Body</span><span class="ds">The gym. Her own bio line, and the half of it the page has never shown.</span></div>' +
+    '<div class="pil"><span class="c">2</span><span class="nm">Soft Life Notes</span><span class="ds">One honest line of text over quiet footage. The line does the work.</span></div>' +
+    '<div class="pil"><span class="c">1</span><span class="nm">Fashion</span><span class="ds">One outfit, one take. Deliberately the shortest shot list in the month.</span></div>' +
+    '<div class="pil"><span class="c">1</span><span class="nm">Fragrance</span><span class="ds">The category brands pay for. One properly-lit reel, built to be shown to them.</span></div>' +
+    '<div class="pil"><span class="c">1</span><span class="nm">Studio Days</span><span class="ds">The interior design course. One reel, because she is on the page as a person, not a student.</span></div>' +
     '</div><div class="block"><h3>The 5 carousels</h3>' +
     '<div class="pil"><span class="c">1</span><span class="nm">Who she is</span><span class="ds">Built entirely from photos already on her phone.</span></div>' +
-    '<div class="pil"><span class="c">2</span><span class="nm">Interiors &amp; travel</span><span class="ds">Saveable lists. The caption carries the value.</span></div>' +
+    '<div class="pil"><span class="c">1</span><span class="nm">Beauty</span><span class="ds">The real bathroom shelf. Saved and sent on, and the first thing a brand reads.</span></div>' +
+    '<div class="pil"><span class="c">1</span><span class="nm">Travel</span><span class="ds">Dubai without the malls. Place posts keep working for months.</span></div>' +
     '<div class="pil"><span class="c">1</span><span class="nm">Personal growth</span><span class="ds">The reflection post that replaces quote graphics.</span></div>' +
     '<div class="pil"><span class="c">1</span><span class="nm">Month one recap</span><span class="ds">Course progress. Milestones beat ordinary days.</span></div>' +
+    '</div><div class="block"><h3>Where the month sits &mdash; her own list of niches</h3>' +
+    '<div class="pil"><span class="c">6</span><span class="nm">Beauty &amp; fragrance</span><span class="ds">Skincare, everyday makeup, the shelf, the three perfumes.</span></div>' +
+    '<div class="pil"><span class="c">6</span><span class="nm">Lifestyle &amp; home</span><span class="ds">Mornings, the reset, the school run, the quiet house.</span></div>' +
+    '<div class="pil"><span class="c">3</span><span class="nm">Fitness</span><span class="ds">Two gym reels and the line that carries the whole page.</span></div>' +
+    '<div class="pil"><span class="c">3</span><span class="nm">Fashion &amp; travel</span><span class="ds">One outfit reel, Dubai, and the flexible photo slot.</span></div>' +
+    '<div class="pil"><span class="c">2</span><span class="nm">Interior design</span><span class="ds">One reel and one recap. Kept small on purpose &mdash; she can&rsquo;t film in class.</span></div>' +
     '</div>';
 
   function renderMonth() {
@@ -720,13 +822,13 @@
     var del = t.closest('[data-del]');
     if (del) {
       e.stopPropagation();
-      var did = del.getAttribute('data-del'), di = +del.getAttribute('data-i');
-      var arr = (get('refs:' + did, []) || []).slice();
+      var dk = del.getAttribute('data-del'), di = +del.getAttribute('data-i');
+      var arr = (get('refs:' + dk, []) || []).slice();
       var gone = arr.splice(di, 1)[0];
       if (gone && isIdb(gone)) Media.del(gone);
-      put('refs:' + did, arr);
-      var strip = document.getElementById('refs-' + did);
-      if (strip) { strip.innerHTML = refsHTML(findPost(did)); hydrateRefs(strip); }
+      put('refs:' + dk, arr);
+      redrawSlot(dk);
+      slotMsg(dk, 'Deleted. Nothing else was touched.');
       return;
     }
 
@@ -827,9 +929,7 @@
     else if (t.matches('[data-edit]')) {
       var pid = t.getAttribute('data-edit'), field = t.getAttribute('data-field');
       var e2 = Object.assign({}, get('edit:' + pid, {}));
-      e2[field] = field === 'steps'
-        ? t.value.split('\n').filter(function (x) { return x.trim(); }).map(toRich)
-        : t.value;
+      e2[field] = field === 'shots' ? textToShots(t.value) : t.value;
       act = ['edit:' + pid, e2];
       var card = document.getElementById('card-' + pid);
       if (card && (field === 'title' || field === 'what')) {
@@ -860,7 +960,10 @@
         var img = new Image();
         img.onerror = function () { resolve(null); };
         img.onload = function () {
-          var sc = Math.min(1, 1400 / Math.max(img.width, img.height));
+            /* Everything lands in a 9:16 frame, so nothing needs to be bigger than
+             720×1280. Scale by whichever side hits the limit first — the shape of
+             the picture is never touched, it just stops being oversized. */
+          var sc = Math.min(1, 720 / img.width, 1280 / img.height);
           var cv = document.createElement('canvas');
           cv.width = Math.round(img.width * sc);
           cv.height = Math.round(img.height * sc);
@@ -931,54 +1034,85 @@
     catch (e) { return { err: 'This device would not store ' + file.name + '. Switch live sync on.' }; }
   }
 
-  function dropMsg(id, html, warn) {
-    var el = document.getElementById('drop-' + id);
+  function slotMsg(k, html, kind) {
+    var el = document.getElementById('smsg-' + slotDom(k));
     if (!el) return;
-    el.innerHTML = html;
-    el.className = 'drophint' + (warn ? ' warn' : '');
+    el.innerHTML = html || '';
+    el.className = 'smsg' + (kind ? ' ' + kind : '');
+  }
+
+  function redrawSlot(k) {
+    var s = document.getElementById(slotDom(k));
+    if (s) { s.innerHTML = refsHTML(k); hydrateRefs(s); }
+  }
+
+  /* A phone, Finder and the Photos app all hand a drop over differently. Read
+     dataTransfer.files first, then fall back to walking the items list, which is
+     the only place the file shows up in some builds. */
+  function filesFrom(dt) {
+    if (!dt) return [];
+    if (dt.files && dt.files.length) return Array.prototype.slice.call(dt.files);
+    var out = [];
+    if (dt.items) {
+      for (var i = 0; i < dt.items.length; i++) {
+        if (dt.items[i].kind === 'file') {
+          var f = dt.items[i].getAsFile();
+          if (f) out.push(f);
+        }
+      }
+    }
+    return out;
   }
 
   // the single entry point for browse, drop and paste
-  async function addImages(id, files) {
-    if (!id) return;
+  async function addImages(k, files) {
+    if (!k) return;
     var all = Array.prototype.slice.call(files || []);
-    var list = all.filter(function (f) { return f && /^(image|video)\//.test(f.type); });
+    var list = all.filter(function (f) {
+      return f && (/^(image|video)\//.test(f.type) ||
+        /\.(jpe?g|png|heic|heif|webp|gif|mp4|mov|m4v|webm|avi)$/i.test(f.name || ''));
+    });
     var skipped = all.length - list.length;
 
     if (!list.length) {
-      dropMsg(id, all.length
-        ? '<b>Photos and video clips only.</b> That file was neither.'
-        : '<b>Nothing came through.</b> Try tapping the box to browse instead.', true);
+      slotMsg(k, all.length
+        ? '<b>Photos and clips only.</b> That file was neither.'
+        : '<b>Nothing came through.</b> Some apps hand over a link instead of the ' +
+          'file &mdash; tap the box and pick it from your phone or Finder instead.', 'warn');
       return;
     }
 
-    var strip = document.getElementById('refs-' + id);
+    var strip = document.getElementById(slotDom(k));
     if (strip) {
       strip.insertAdjacentHTML('beforeend',
-        '<div class="ref busy">Adding ' + list.length + '…</div>');
+        '<div class="ref busy">Saving ' + list.length + '…</div>');
     }
+    slotMsg(k, 'Saving…');
 
     var added = 0, errs = [];
     for (var i = 0; i < list.length; i++) {
-      var r = await processOne(id, list[i]);
+      var r = await processOne(slotPost(k), list[i]);
       if (r && r.tok) {
-        put('refs:' + id, (get('refs:' + id, []) || []).concat([r.tok]));
+        put('refs:' + k, (get('refs:' + k, []) || []).concat([r.tok]));
         added++;
       } else if (r && r.err) errs.push(r.err);
     }
 
-    var s2 = document.getElementById('refs-' + id);
-    if (s2) { s2.innerHTML = refsHTML(findPost(id)); hydrateRefs(s2); }
+    redrawSlot(k);
 
-    var msg = '';
-    if (added) msg += '<b>' + added + (added === 1 ? ' added.' : ' added.') + '</b> ';
+    var kept = (get('refs:' + k, []) || []).length;
+    var msg = '', kind = added ? 'ok' : 'warn';
+    if (added) {
+      msg += '<b>Saved.</b> ' + kept + (kept === 1 ? ' reference' : ' references') +
+        ' on this shot &mdash; ' + (Store.mode === 'live'
+          ? 'Swatti can see it now.' : 'it stays here until you delete it.') + ' ';
+    }
     if (skipped) msg += skipped + ' file' + (skipped > 1 ? 's were' : ' was') +
       ' neither a photo nor a clip. ';
     if (errs.length) msg += errs.join(' ');
-    if (!added && !errs.length && !skipped) msg = '<b>Those files couldn\'t be read.</b> Try a JPG, PNG or MP4.';
-    if (added && !errs.length) msg += 'Drag more onto the strip any time.';
-    dropMsg(id, msg, !added);
-    if (added) flash(added === 1 ? 'Reference added.' : added + ' references added.');
+    if (!added && !errs.length && !skipped) msg = '<b>That file couldn\'t be read.</b> Try a JPG, PNG or MP4.';
+    slotMsg(k, msg, kind);
+    if (added) flash(added === 1 ? 'Reference saved.' : added + ' references saved.');
     syncBadge();
   }
 
@@ -1018,7 +1152,14 @@
     var k = z.getAttribute('data-zone');
     dragDepth[k] = 0;
     z.classList.remove('dragover');
-    addImages(k, e.dataTransfer && e.dataTransfer.files);
+    var got = filesFrom(e.dataTransfer);
+    if (!got.length) {
+      slotMsg(k, '<b>That arrived as a link, not a file.</b> Dragging out of a browser tab ' +
+        'or a chat window often does that. Save the file first, then drag it from Finder ' +
+        '&mdash; or just tap the box.', 'warn');
+      return;
+    }
+    addImages(k, got);
   });
   // stop a stray drop elsewhere from navigating away from the page
   window.addEventListener('dragover', function (e) { e.preventDefault(); });
@@ -1026,15 +1167,24 @@
     if (!(e.target.closest && e.target.closest('[data-zone]'))) e.preventDefault();
   });
 
-  /* paste an image into the open card */
+  /* paste an image straight into whichever shot the pointer is over */
+  var lastZone = null;
+  document.addEventListener('pointerover', function (e) {
+    var z = e.target.closest && e.target.closest('[data-zone]');
+    if (z) lastZone = z.getAttribute('data-zone');
+  });
   document.addEventListener('paste', function (e) {
     if (isTyping()) return;
-    var items = (e.clipboardData && e.clipboardData.files) || [];
-    if (!items.length) return;
-    var openCard = document.querySelector('.card.open');
-    if (!openCard) return;
+    var got = filesFrom(e.clipboardData);
+    if (!got.length) return;
+    var target = lastZone;
+    if (!target) {
+      var openCard = document.querySelector('.card.open');
+      if (!openCard) return;
+      target = slotKey(openCard.id.replace('card-', ''), 0);
+    }
     e.preventDefault();
-    addImages(openCard.id.replace('card-', ''), items);
+    addImages(target, got);
   });
 
   /* ───────────────── audio ───────────────── */

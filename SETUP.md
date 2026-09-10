@@ -22,10 +22,20 @@ remembered on that device and is never shared — switching to Studio on your la
 change what she sees on her phone. She opens the link and lands in her view every time.
 `swatti.cutlume.com/#studio` opens straight into yours.
 
-**Swatti's view.** This week, in order. Each post opens to a step-by-step shot list, the line to
+**Swatti's view.** This week, in order. Each post opens to a **shot table**: one row per shot,
+left column saying how close to stand (WIDE · MEDIUM · CLOSE · MIRROR · POV), whether the phone
+is on the tripod or in her hand, what she actually does and how many seconds to film it — right
+column a 9:16 frame holding the reference photo or clip for that exact shot. Then the line to
 say or put on screen, and a note box. One tick box per post. Plus the weekly "what does your
 week look like" box she types or records into. Nothing about the pipeline, no counts, no
 editing.
+
+Shot counts are deliberately uneven. The Friday 2 Oct outfit reel is **one** shot filmed five
+times; the 6am films run to six or seven. The video decides, not a template.
+
+**Posted turns green.** Set a post to Posted in the pipeline and the card, the calendar chip and
+the sidebar dot all go green — the one place a second colour is used on the page, and it means
+exactly one thing: this is live on her account.
 
 **Studio (yours).** Everything above, plus:
 
@@ -35,7 +45,9 @@ editing.
   per-post comments. Tap one to jump to it.
 - **Edit the words** — a button inside each post opens the title, one-liner, shot list and
   on-screen text for editing. Saves as you type. To make something bold, put `*stars*` around
-  it — no HTML, and the tags never appear in the box.
+  it — no HTML, and the tags never appear in the box. The shot list is one shot per line:
+  `ANGLE | tripod or hand | what she does | seconds`. A line with no bars is a step that isn't
+  a shot (the voiceover instructions, for instance).
 - The month calendar carries the pipeline stage, the counts and the full schedule table.
 
 Down the left on a laptop: the month's progress, a mini calendar of every post (a corner mark
@@ -49,16 +61,29 @@ is a filming morning), and the week list. On a phone that sidebar moves into **F
 angle, short enough that the page stays quick. Anything longer is refused with the actual
 length in the message, so you know exactly what to trim.
 
-Available in **both views**, on every post, with no mode to switch on first.
+Available in **both views**, on every post, with no mode to switch on first. Each one goes into
+**the row of the shot it belongs to**, not one pile at the top of the post.
 
-- **Drag photos or clips onto the strip.** Several at once is fine, mixed is fine.
-- **Tap the box** to browse — this is the one that works on a phone or iPad.
-- **⌘V** pastes a copied image into whichever post is open.
+- **Drag photos or clips onto a row's frame.** Several at once is fine, mixed is fine.
+- **Tap the frame** to browse — this is the one that works on a phone or iPad.
+- **⌘V** pastes a copied image into whichever row the pointer is over.
 
-Photos are shrunk in the browser before they're stored. Clips are kept as they are. Everything
-is held as a real file in the browser's own media store, not squeezed into text storage — which
-is why photos used to silently vanish on reload once you'd added a dozen, and no longer do.
-Landscape and portrait are both shown whole, never cropped or squashed.
+Every message under a frame says what happened and how many references that shot now holds.
+If a drop arrives as a link rather than a file — which is what dragging out of a browser tab or
+a chat window does — it says so and tells you to tap instead, rather than failing silently.
+
+Photos are re-sized in the browser to fit inside **720 × 1280** before they're stored; the shape
+is never touched, so a landscape photo just becomes a smaller landscape photo. Clips are kept as
+they are. Every frame is a fixed 9:16 box with `object-fit: contain`, so a square screenshot, a
+wide photo and a vertical clip all sit in identically-sized frames and **none of them are ever
+stretched**. Everything is held as a real file in the browser's own media store, not squeezed
+into text storage — which is why photos used to silently vanish on reload once you'd added a
+dozen, and no longer do.
+
+**Nothing is ever removed on its own.** A reference, a note, a voice note or an edited line
+stays until somebody presses its delete button. Re-editing the shot list is the one thing that
+moves references: adding or removing a line shifts the frames below it, because a frame belongs
+to a row number.
 
 Until live sync is on, those files live on **that device only** — she won't see yours and you
 won't see hers. That's the one remaining reason to do the Supabase step below.

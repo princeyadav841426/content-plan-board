@@ -15,6 +15,9 @@
   --ink:#0D0C0B; --ink-2:#57534E; --ink-3:#9C968D;
   --rule:#EDEAE4; --rule-2:#DFDAD1;
   --sand:#E2D4BD; --sand-mid:#EFE7D8; --sand-wash:#FAF6EF;
+  /* the one extra colour, and it means exactly one thing: this is live on the page.
+     4.9:1 on white, so it is allowed to carry text as well as fill. */
+  --go:#1C6B4A; --go-mid:#CFE3D8; --go-wash:#EDF4F0;
   --font:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
   --pad:24px; --maxw:1240px; --base:15px; --rail:264px;
 }
@@ -83,6 +86,8 @@ main{min-width:0;padding-top:4px}
 .minical button.inwk{background:var(--sand-wash)}
 .minical b{display:block;width:4px;height:4px;border-radius:50%;background:var(--sand)}
 .minical button.done b{background:var(--ink)}
+.minical button.posted b{background:var(--go)}
+.wk-dots i.posted{background:var(--go)}
 .minical .shootday{position:relative}
 .minical .shootday::after{content:"";position:absolute;top:3px;right:3px;width:3px;height:3px;
   background:var(--ink);border-radius:50%}
@@ -196,7 +201,7 @@ button.btn.quiet:hover{background:var(--paper-2)}
 .stagepill{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
   color:var(--ink-2);background:var(--sand-wash);padding:5px 8px;white-space:nowrap}
 .stagepill[data-s="0"]{background:var(--paper-2);color:var(--ink-3)}
-.stagepill[data-s="4"]{background:var(--sand)}
+.stagepill[data-s="4"]{background:var(--go);color:var(--paper)}
 .tick input{appearance:none;-webkit-appearance:none;width:24px;height:24px;margin:0;flex:none;
   border:1.5px solid var(--rule-2);background:var(--paper);cursor:pointer;position:relative;
   transition:background .12s,border-color .12s}
@@ -207,6 +212,16 @@ button.btn.quiet:hover{background:var(--paper-2)}
   border:solid var(--ink);border-width:0 2px 2px 0;transform:rotate(45deg)}
 .card.is-done .htext,.card.is-done .daycol{opacity:.42}
 .card.is-done .htext h4{text-decoration:line-through}
+/* live on the page — the one thing the second colour is for */
+.card.is-posted{background:var(--go-wash);box-shadow:inset 3px 0 0 var(--go)}
+.card.is-posted .head{padding-left:14px}
+.card.is-posted .body{padding-left:86px}
+.card.is-posted .htext,.card.is-posted .daycol{opacity:1}
+.card.is-posted .htext h4{text-decoration:none}
+.card.is-posted .tick input:checked{background:var(--go);border-color:var(--go)}
+.card.is-posted .tick input:checked::after{border-color:var(--paper)}
+.posted{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--paper);background:var(--go);padding:4px 8px;white-space:nowrap}
 .body{display:none;padding:0 0 30px 72px}
 .card.open .body{display:block}
 .card.open .head{padding-bottom:12px}
@@ -227,48 +242,62 @@ button.btn.quiet:hover{background:var(--paper-2)}
   padding:9px 4px;cursor:pointer;min-height:38px}
 .pipesteps button.on{background:var(--sand-mid);color:var(--ink);border-color:var(--sand)}
 .pipesteps button.at{background:var(--sand);color:var(--ink);border-color:var(--sand)}
+.pipesteps button.at[data-n="4"]{background:var(--go);border-color:var(--go);color:var(--paper)}
 
-/* reference shots */
-.refs{margin:0 0 26px}
-.refzone{position:relative;padding:4px;margin:-4px;transition:background .12s}
-.refzone.dragover{background:var(--sand-wash);outline:2px dashed var(--sand);outline-offset:-2px}
-.refzone.dragover::after{content:"Drop to add";position:absolute;top:50%;left:50%;
-  transform:translate(-50%,-50%);background:var(--ink);color:var(--paper);font-size:11.5px;
-  font-weight:600;letter-spacing:.04em;padding:8px 14px;pointer-events:none;z-index:2}
-.refstrip{display:flex;gap:9px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;
+/* ── the shot table: what she does, and the shot to copy ── */
+.shothead{display:grid;grid-template-columns:1fr 104px;gap:18px;align-items:end;
+  padding-bottom:9px;border-bottom:2px solid var(--sand)}
+.shothead .label{margin:0}
+.shots{margin:0 0 26px;padding:0;list-style:none}
+.shot{display:grid;grid-template-columns:1fr 104px;gap:18px;align-items:start;
+  padding:15px 0;border-bottom:1px solid var(--rule)}
+.s-txt{min-width:0}
+.s-meta{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:7px}
+.s-n{font-size:11px;font-weight:700;color:var(--ink);background:var(--sand-wash);
+  width:20px;height:20px;line-height:20px;text-align:center;flex:none;
+  font-variant-numeric:tabular-nums}
+.ang{font-size:9.5px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--ink);background:var(--sand);padding:3px 7px;flex:none}
+.hold,.secs{font-size:9.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--ink-3);flex:none}
+.secs{font-variant-numeric:tabular-nums}
+.s-do{font-size:14.5px;color:var(--ink-2);margin:0;max-width:52ch}
+.s-do b{color:var(--ink);font-weight:600}
+.shotsum{font-size:11.5px;color:var(--ink-3);margin:10px 0 22px}
+.shotsum b{color:var(--ink-2);font-weight:600}
+
+/* the media column — every slot is a 9:16 frame, whatever gets dropped in it */
+.s-med{position:relative;padding:3px;margin:-3px;transition:background .12s;min-width:0}
+.s-med.dragover{background:var(--sand-wash);outline:2px dashed var(--sand);outline-offset:-2px}
+.refstrip{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:3px;
   scrollbar-width:none}
 .refstrip::-webkit-scrollbar{display:none}
-.ref{flex:none;width:108px;height:192px;background:var(--sand-wash);position:relative;
-  display:flex;align-items:center;justify-content:center}
-.ref img,.ref video{width:108px;height:192px;object-fit:contain;display:block;background:#F2EEE7}
+.ref{flex:none;width:104px;height:185px;background:var(--sand-wash);position:relative;
+  display:flex;align-items:center;justify-content:center;overflow:hidden}
+/* both dimensions are fixed and object-fit does the rest — a tall clip, a square
+   photo and a screenshot all land in the same frame and none of them stretch. */
+.ref img,.ref video{width:104px;height:185px;object-fit:contain;display:block;background:#F2EEE7}
 .ref video{background:#0D0C0B}
-.ref .clip{position:absolute;left:5px;bottom:5px;background:var(--ink);color:var(--paper);
-  font-size:9.5px;font-weight:700;letter-spacing:.07em;padding:3px 6px;pointer-events:none;
+.ref .clip{position:absolute;left:4px;bottom:4px;background:var(--ink);color:var(--paper);
+  font-size:9px;font-weight:700;letter-spacing:.07em;padding:2px 5px;pointer-events:none;
   font-variant-numeric:tabular-nums}
 .ref .loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  font-size:10.5px;color:var(--ink-3);background:var(--sand-wash)}
-.ref .del{position:absolute;top:5px;right:5px;background:var(--paper);border:1px solid var(--rule-2);
-  width:28px;height:28px;font-size:15px;line-height:1;cursor:pointer;color:var(--ink-2);padding:0}
-.ref.add{border:1px dashed var(--sand);cursor:pointer;flex-direction:column;gap:6px;font-size:11.5px;
-  font-weight:600;color:var(--ink-2);text-align:center;padding:12px;background:var(--paper)}
-.ref.add:hover{background:var(--sand-wash)}
-.ref.add .plus{font-size:24px;color:var(--sand);line-height:1;font-weight:400}
-.ref.add small{font-weight:500;color:var(--ink-3);font-size:10.5px;line-height:1.35}
-.ref.add.wide{width:100%;min-width:210px;height:132px}
-.ref.busy{font-size:11px;color:var(--ink-3);border:1px dashed var(--rule-2)}
-.drophint{font-size:11.5px;color:var(--ink-3);margin:10px 0 0;max-width:58ch}
+  font-size:10.5px;color:var(--ink-3);background:var(--sand-wash);text-align:center;padding:6px}
+.ref .del{position:absolute;top:4px;right:4px;background:var(--paper);border:1px solid var(--rule-2);
+  width:26px;height:26px;font-size:14px;line-height:1;cursor:pointer;color:var(--ink-2);padding:0}
+.ref.add{border:1px dashed var(--rule-2);cursor:pointer;flex-direction:column;gap:5px;font-size:10.5px;
+  font-weight:600;color:var(--ink-2);text-align:center;padding:10px;background:var(--paper);
+  line-height:1.35}
+.ref.add:hover{background:var(--sand-wash);border-color:var(--sand)}
+.ref.add .plus{font-size:22px;color:var(--sand);line-height:1;font-weight:400}
+.ref.add small{font-weight:500;color:var(--ink-3);font-size:9.5px;line-height:1.3;display:block}
+.ref.busy{font-size:10.5px;color:var(--ink-3);border:1px dashed var(--rule-2);text-align:center;padding:8px}
+.smsg{font-size:10.5px;line-height:1.4;color:var(--ink-3);margin:6px 0 0}
+.smsg b{color:var(--ink);font-weight:600}
+.smsg.warn{color:var(--ink);background:var(--sand-wash);border-left:2px solid var(--sand);padding:6px 8px}
+.smsg.ok b{color:var(--go)}
+.drophint{font-size:11.5px;color:var(--ink-3);margin:0 0 20px;max-width:60ch}
 .drophint b{color:var(--ink-2);font-weight:600}
-.drophint.warn{color:var(--ink);background:var(--sand-wash);border-left:3px solid var(--sand);
-  padding:9px 12px}
-
-/* shot list */
-.film{margin:0 0 26px;padding:0;list-style:none;counter-reset:s}
-.film li{counter-increment:s;position:relative;padding-left:30px;margin-bottom:12px;font-size:14.5px;
-  color:var(--ink-2);max-width:58ch}
-.film li::before{content:counter(s);position:absolute;left:0;top:1px;font-size:11px;font-weight:700;
-  color:var(--ink);background:var(--sand-wash);width:20px;height:20px;line-height:20px;text-align:center;
-  font-variant-numeric:tabular-nums}
-.film li b{color:var(--ink);font-weight:600}
 .saytxt{background:var(--sand-wash);padding:16px 18px;margin:0 0 26px;max-width:56ch}
 .saytxt .label{margin-bottom:8px}
 .saytxt p{margin:0;font-weight:500;font-size:14.5px;color:var(--ink)}
@@ -325,6 +354,11 @@ details.why b{color:var(--ink);font-weight:600}
   overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .chip.done{background:var(--sand)}
 .chip.done .cn{text-decoration:line-through;color:var(--ink-2)}
+.chip.posted{background:var(--go-wash);border-left-color:var(--go)}
+.chip.posted .ct{color:var(--go)}
+.chip.posted .cn{text-decoration:none;color:var(--ink)}
+.chip.posted::after{content:"Posted";display:block;font-size:8px;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--go);margin-top:3px}
 
 .counts{display:flex;gap:38px;flex-wrap:wrap;border-top:2px solid var(--sand);margin-top:40px;padding-top:20px}
 .count .n{font-size:28px;font-weight:700;letter-spacing:-0.04em;font-variant-numeric:tabular-nums;
@@ -386,19 +420,20 @@ body[data-role="creator"] .stagepill{display:none}
   body[data-view="week"] .rail{display:none}
   .minical{display:none}
   .weeks{display:flex}
-  .cell{min-height:64px;padding:5px 4px 6px}
   .cal .dw{padding:6px 5px;font-size:8.5px;letter-spacing:.06em}
-  .dnum em{display:none}
-  .chip{margin-top:4px;height:6px;padding:0;border-left:0;background:var(--sand-mid)}
-  .chip .ct,.chip .cn{display:none}
-  .chip.done{background:var(--ink)}
+  .cell{min-height:96px;padding:6px 5px 8px}
+  .chip .cn{-webkit-line-clamp:3}
   .mhead h2,.wkhead h2{font-size:22px}
 }
 @media (max-width:600px){
-  .brand{flex-direction:column;align-items:flex-start;gap:2px}
+  /* the masthead is sticky, so every pixel it takes is a pixel of plan she can't
+     see. Stacked, but tight. */
+  .hd{padding-top:11px}
+  .brand{flex-direction:column;align-items:flex-start;gap:1px}
   .range{padding-left:0;border-left:0}
-  .tabsrow{flex-direction:column;align-items:stretch;gap:0;margin-top:8px}
-  .sync{text-align:left;padding:0 0 9px}
+  .tabsrow{flex-direction:column;align-items:stretch;gap:0;margin-top:4px}
+  .tabs button{padding:8px 0;min-height:38px}
+  .sync{text-align:left;padding:0 0 7px;font-size:10.5px;line-height:1.35}
 }
 @media (max-width:767px){
   h1{font-size:15.5px}
@@ -430,10 +465,25 @@ body[data-role="creator"] .stagepill{display:none}
   .wkrow{border-bottom:1px solid var(--sand);padding:22px 0 6px}
   .wkrow td{display:block;padding:0;border:0}
   .pipesteps button{min-width:0;flex:1 1 30%}
+  /* a phone month-grid can't hold titles — each post becomes a bar on the day */
+  .cell{min-height:64px;padding:5px 4px 6px}
+  .dnum em{display:none}
+  .chip{margin-top:4px;height:6px;padding:0;border-left:0;background:var(--sand-mid)}
+  .chip .ct,.chip .cn{display:none}
+  .chip.done{background:var(--ink)}
+  .chip.posted{background:var(--go)}
+  .chip.posted::after{display:none}
+  /* the two columns become two rows — the shot, then the frame to copy */
+  .shot{grid-template-columns:1fr;gap:10px;padding:16px 0}
+  .shothead{grid-template-columns:1fr}
+  .s-do{max-width:none}
+  .card.is-posted .body{padding-left:14px}
+  .card.is-posted .head{padding-left:10px}
 }
 @media (max-width:380px){
   :root{--pad:14px}
-  .ref,.ref img{width:96px;height:170px}
+  .ref{width:96px;height:171px}
+  .ref img,.ref video{width:96px;height:171px}
   .tagline{gap:6px;font-size:9.5px}
 }
 </style>
@@ -481,7 +531,7 @@ body[data-role="creator"] .stagepill{display:none}
     </div>
 
     <footer>Two shoot mornings a week. 15 reels, 5 carousels, plus whatever she films along the way.
-      <span style="float:right;font-variant-numeric:tabular-nums">build 4</span></footer>
+      <span style="float:right;font-variant-numeric:tabular-nums">build 5</span></footer>
   </main>
 </div>
 
@@ -494,8 +544,8 @@ body[data-role="creator"] .stagepill{display:none}
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <!-- bump ?v= on every push so nobody is ever looking at a cached old build -->
-<script src="config.js?v=4"></script>
-<script src="plan-data.js?v=4"></script>
-<script src="app.js?v=4"></script>
+<script src="config.js?v=5"></script>
+<script src="plan-data.js?v=5"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>

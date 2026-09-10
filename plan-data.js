@@ -35,7 +35,16 @@ window.PLAN_META = {
   label: "15 Sept – 14 Oct",
   start: "2026-09-15",
   end:   "2026-10-14",
-  storeKey: "sep15"
+  storeKey: "sep15",
+
+  /* BUMP THIS whenever the shot lists or wording in this file change.
+     Anyone who once tapped "+ Add a shot", "Remove" or typed in the edit box
+     has a LOCAL copy of that post saved under edit:<id>, and that copy wins
+     over everything below it — forever, silently. That is how Prince kept
+     seeing "Nothing to film" on a build where the line no longer existed.
+     Raising rev retires those stale copies (kept as editbak:<id>) so the
+     plan in this file is what everybody sees. */
+  rev: 2
 };
 
 window.PLAN = [

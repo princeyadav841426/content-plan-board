@@ -24,7 +24,7 @@
   var S = {};                     // flat key -> value, shared
   var cur = 0, role = 'creator', view = 'week', openSet = {};
   var recorder = null, chunks = [], recTimer = null, recWeek = null, discarding = false;
-  var pickTarget = null, lsFull = false;
+  var pickTarget = null, lsFull = false, staleNotice = 0;
 
   /* ───────────────── storage ───────────────── */
 
@@ -329,6 +329,12 @@
     { v: 'POV',    t: 'POV shot' },
     { v: 'PHOTO',  t: 'Photo' }
   ];
+  var CHECK = '<svg class="ckico" viewBox="0 0 16 16" aria-hidden="true">' +
+    '<path d="M2.6 8.4l3.4 3.4 7.4-7.9"/></svg>';
+  var GRIP = '<svg viewBox="0 0 10 16" aria-hidden="true"><circle cx="2.5" cy="3" r="1.3"/>' +
+    '<circle cx="7.5" cy="3" r="1.3"/><circle cx="2.5" cy="8" r="1.3"/><circle cx="7.5" cy="8" r="1.3"/>' +
+    '<circle cx="2.5" cy="13" r="1.3"/><circle cx="7.5" cy="13" r="1.3"/></svg>';
+
   function angleWords(a) {
     for (var i = 0; i < ANGLES.length; i++) if (ANGLES[i].v === a) return ANGLES[i].t;
     return a || '';
@@ -547,22 +553,28 @@
     var hw = holdWords(sh.h);
     if (hw) meta += '<span class="hold">' + hw + '</span>';
     if (sh.s) meta += '<span class="secs">' + sh.s + 's</span>';
-    if (have) meta += '<span class="ondrive">Already filmed</span>';
+    if (have) meta += '<span class="ondrive">' + CHECK + 'Already shot</span>';
 
     var body = '';
     if (sh.n) body += '<p class="s-name">' + sh.n + '</p>';
     if (sh.do) body += '<p class="s-do' + (sh.n ? ' under' : '') + '">' + sh.do + '</p>';
 
-    var med = '';
+    /* The green box sits UNDER the upload rectangle, Prince's placement:
+       tick, "Already shot", then which clip it is. It states a fact — we hold
+       a version of this shot — it does NOT mean skip it. The same shot from a
+       different angle is often still worth taking. */
+    var med = '<div class="refstrip" id="' + dom + '">' + refsHTML(k, have) + '</div>';
     if (have) {
-      med += '<p class="havetag">On the drive' +
-        (sh.file ? '<small>' + esc(sh.file) + '</small>' : '<small>Nothing to film for this one</small>') + '</p>';
+      med += '<div class="havebox">' +
+        '<p class="hb-top">' + CHECK + 'Already shot</p>' +
+        (sh.file ? '<p class="hb-file">' + esc(sh.file) + '</p>' : '') +
+        '</div>';
     }
-    med += '<div class="refstrip" id="' + dom + '">' + refsHTML(k, have) + '</div>' +
-           '<p class="smsg" id="smsg-' + dom + '"></p>';
+    med += '<p class="smsg" id="smsg-' + dom + '"></p>';
 
     return '<li class="shot' + (have ? ' has-footage' : '') + '">' +
-      '<div class="s-txt"><div class="s-meta">' + meta +
+      '<div class="s-txt"><div class="s-meta">' +
+        '<span class="s-grip studio-only" title="Drag to reorder">' + GRIP + '</span>' + meta +
         '<button class="s-kill studio-only" data-killshot="' + p.id + '" data-i="' + i +
         '" title="Remove this shot">Remove</button></div>' + body + '</div>' +
       '<div class="s-med" data-zone="' + k + '">' + med + '</div></li>';
@@ -687,13 +699,15 @@
         pipeHTML(p) +
         '<div class="shothead"><p class="label">What to film</p>' +
           '<p class="label">Shot to copy</p></div>' +
-        '<ol class="shots">' +
+        (haveShots ? '<p class="shotkey"><span><i class="k-film"></i>Still to film</span>' +
+          '<span><i class="k-have"></i>Already shot &mdash; we have this one</span></p>' : '') +
+        '<ol class="shots" data-shotlist="' + p.id + '">' +
           shots.map(function (sh, i) { return shotHTML(p, sh, i); }).join('') + '</ol>' +
         addShotHTML(p) +
         '<p class="shotsum">' +
           (camShots ? '<b>' + camShots + (camShots === 1 ? ' shot' : ' shots') + '</b>' +
-            (haveShots ? ' &middot; <b>' + haveShots + ' already filmed</b>' +
-              (camShots - haveShots > 0 ? ', ' + (camShots - haveShots) + ' still to get' : ', nothing left to shoot') : '') +
+            (haveShots ? ' &middot; <b>' + haveShots + ' already shot</b>' +
+              (camShots - haveShots > 0 ? ', ' + (camShots - haveShots) + ' still to get' : '') : '') +
             (secs ? ' &middot; about <b>' + secs + ' seconds</b> of footage in total. ' : '. ')
             : '') +
           'Drop a photo or a clip (up to ' + CLIP_SECONDS + ' seconds) into any row so Swatti can ' +
@@ -704,6 +718,8 @@
         (p.note ? '<details class="why"><summary>Why this one works</summary><p>' + p.note + '</p></details>' : '') +
         '<div class="edwrap studio-only" id="ed-' + p.id + '">' +
           '<button class="edtoggle" data-edtoggle="' + p.id + '">Edit the words</button>' +
+          (Object.keys(get('edit:' + p.id, {}) || {}).length
+            ? '<button class="edreset" data-edreset="' + p.id + '">Reset to the plan</button>' : '') +
           '<div class="edfields">' +
             '<p class="edlabel">Title</p><textarea style="min-height:48px" data-edit="' + p.id + '" data-field="title">' + esc(F(p, 'title')) + '</textarea>' +
             '<p class="edlabel">One-line description</p><textarea style="min-height:48px" data-edit="' + p.id + '" data-field="what">' + esc(F(p, 'what')) + '</textarea>' +
@@ -1015,6 +1031,18 @@
       return;
     }
 
+    var rst = t.closest('[data-edreset]');
+    if (rst) {
+      e.stopPropagation();
+      var rid = rst.getAttribute('data-edreset');
+      if (!window.confirm('Throw away the local changes on this post and go back to the plan?')) return;
+      put('edit:' + rid, {});
+      openSet[rid] = true;
+      renderWeek();
+      flash('Back to the plan.');
+      return;
+    }
+
     var asOpen = t.closest('[data-addshot]');
     if (asOpen) {
       e.stopPropagation();
@@ -1202,6 +1230,84 @@
 
   document.getElementById('v-week').addEventListener('click', function () { setView('week'); });
   document.getElementById('v-month').addEventListener('click', function () { setView('month'); });
+
+  /* ───────────────── reorder shots (Trello-style) ─────────────────
+     Pointer events, not HTML5 drag-and-drop: HTML5 drag would collide with the
+     file-drop zones sitting inside every one of these rows, and it does nothing
+     at all on a phone. A shot is addressed by its POSITION, so moving one has
+     to carry its uploaded references with it — read every ref list BEFORE
+     writing any, or row 3's frames land on row 4 halfway through the shuffle. */
+
+  var dragS = null;
+
+  function renumber(ol) {
+    Array.prototype.forEach.call(ol.children, function (li, i) {
+      var n = li.querySelector('.s-n');
+      if (n) n.textContent = i + 1;
+    });
+  }
+
+  function moveShot(pid, from, to) {
+    var p = findPost(pid);
+    if (!p) return;
+    var shots = shotsOf(p).slice();
+    if (from === to || from < 0 || to < 0 || from >= shots.length || to >= shots.length) return;
+
+    var refs = shots.map(function (_, i) { return get('refs:' + slotKey(pid, i), []) || []; });
+    shots.splice(to, 0, shots.splice(from, 1)[0]);
+    refs.splice(to, 0, refs.splice(from, 1)[0]);
+
+    saveShots(p, shots);
+    refs.forEach(function (list, i) { put('refs:' + slotKey(pid, i), list); });
+
+    openSet[pid] = true;
+    renderWeek();
+    flash('Moved to ' + (to + 1) + '.');
+  }
+
+  document.addEventListener('pointerdown', function (e) {
+    var g = e.target.closest && e.target.closest('.s-grip');
+    if (!g || role !== 'studio') return;
+    var li = g.closest('li.shot'), ol = li && li.parentNode;
+    if (!ol || !ol.hasAttribute('data-shotlist')) return;
+    e.preventDefault();
+    try { g.setPointerCapture(e.pointerId); } catch (err) {}
+    dragS = {
+      id: e.pointerId, li: li, ol: ol, grip: g,
+      pid: ol.getAttribute('data-shotlist'),
+      from: Array.prototype.indexOf.call(ol.children, li)
+    };
+    li.classList.add('dragging');
+    ol.classList.add('reordering');
+  });
+
+  document.addEventListener('pointermove', function (e) {
+    if (!dragS || e.pointerId !== dragS.id) return;
+    e.preventDefault();
+    var ol = dragS.ol, li = dragS.li, y = e.clientY, before = null;
+    var rows = Array.prototype.filter.call(ol.children, function (x) { return x !== li; });
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i].getBoundingClientRect();
+      if (y < r.top + r.height / 2) { before = rows[i]; break; }
+    }
+    if (before) { if (li.nextSibling !== before) ol.insertBefore(li, before); }
+    else if (ol.lastChild !== li) ol.appendChild(li);
+    renumber(ol);                       // the numbers follow the drag, live
+  });
+
+  function endDrag(e) {
+    if (!dragS || (e && e.pointerId !== dragS.id)) return;
+    var ol = dragS.ol, li = dragS.li, pid = dragS.pid, from = dragS.from;
+    var to = Array.prototype.indexOf.call(ol.children, li);
+    try { dragS.grip.releasePointerCapture(dragS.id); } catch (err) {}
+    li.classList.remove('dragging');
+    ol.classList.remove('reordering');
+    dragS = null;
+    if (to !== from) moveShot(pid, from, to);
+    else { openSet[pid] = true; renderWeek(); }   // snap the DOM back exactly
+  }
+  document.addEventListener('pointerup', endDrag);
+  document.addEventListener('pointercancel', endDrag);
 
   /* ───────────────── image upload ───────────────── */
 
@@ -1605,6 +1711,33 @@
   /* ───────────────── boot ───────────────── */
 
   S = localLoad();
+
+  /* Anyone who ever tapped "+ Add a shot", "Remove", or typed in the edit box
+     has a LOCAL copy of that post at edit:<id>, and F() reads it BEFORE
+     plan-data.js — so that copy shadows every future update to the plan,
+     silently and forever. That is exactly how "Nothing to film" survived on a
+     build where the line no longer existed anywhere in the file.
+     A raised PLAN_META.rev retires those copies. Nothing is destroyed: each one
+     is parked at editbak:<id>, and the page says how many it set aside. */
+  var planRev = (window.PLAN_META && PLAN_META.rev) || 1;
+  (function retireStaleEdits() {
+    var seen = +(S['planrev'] || 1), stale = [];
+    if (seen >= planRev) { S['planrev'] = planRev; return; }
+    Object.keys(S).forEach(function (k) {
+      if (k.indexOf('edit:') !== 0) return;
+      var v = S[k];
+      if (v && typeof v === 'object' && Object.keys(v).length) {
+        S['editbak:' + k.slice(5)] = v;
+        stale.push(k.slice(5));
+      }
+      delete S[k];
+    });
+    S['planrev'] = planRev;
+    localSave();
+    stale.forEach(function (id) { Store.put('edit:' + id, {}); });
+    if (stale.length) staleNotice = stale.length;
+  })();
+
   try { role = localStorage.getItem(RKEY) === 'studio' ? 'studio' : 'creator'; } catch (e) {}
   if (/[?#]studio/i.test(location.href)) role = 'studio';
   setRole(role, true);
@@ -1625,5 +1758,9 @@
 
   renderWeek();
   syncBadge();
+  if (staleNotice) {
+    flash('Plan updated \u2014 ' + staleNotice + (staleNotice === 1 ? ' post' : ' posts') +
+      ' refreshed from the new version.');
+  }
   Store.init().then(function () { if (!isTyping()) rerender(); });
 })();

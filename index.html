@@ -226,13 +226,16 @@ button.btn.quiet:hover{background:var(--paper-2)}
 .card.open .body{display:block}
 .card.open .head{padding-bottom:12px}
 
-.dates{display:flex;gap:26px;flex-wrap:wrap;font-size:11.5px;margin:0 0 24px;padding-bottom:15px;
+.dates{background:var(--sand-wash);padding:12px 14px;border-left:3px solid var(--sand);
+  display:flex;gap:26px;flex-wrap:wrap;font-size:11.5px;margin:0 0 24px;padding-bottom:12px;
   border-bottom:1px solid var(--rule)}
 .dates div{display:flex;gap:7px}
 .dates .k{font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
 .dates .v{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
 .label{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);
-  margin:0 0 12px}
+  margin:0 0 12px;display:flex;align-items:center;gap:7px}
+.label::before{content:"";width:14px;height:2px;background:var(--sand);flex:none}
+.shothead .label::before{display:none}
 
 /* pipeline (studio) */
 .pipe{margin:0 0 26px}
@@ -249,13 +252,15 @@ button.btn.quiet:hover{background:var(--paper-2)}
   padding-bottom:9px;border-bottom:2px solid var(--sand)}
 .shothead .label{margin:0}
 .shots{margin:0 0 26px;padding:0;list-style:none}
-.shot{display:grid;grid-template-columns:1fr 104px;gap:18px;align-items:start;
-  padding:15px 0;border-bottom:1px solid var(--rule)}
+.shot{box-shadow:inset 3px 0 0 var(--sand);
+  display:grid;grid-template-columns:1fr 104px;gap:18px;align-items:start;
+  padding:15px 0 15px 13px;border-bottom:1px solid var(--rule)}
 .s-txt{min-width:0}
 .s-meta{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:7px}
-.s-n{font-size:11px;font-weight:700;color:var(--ink);background:var(--sand-wash);
-  width:20px;height:20px;line-height:20px;text-align:center;flex:none;
+.s-n{font-size:11px;font-weight:700;color:var(--ink);background:var(--sand);
+  width:21px;height:21px;line-height:21px;text-align:center;flex:none;
   font-variant-numeric:tabular-nums}
+.shot.has-footage .s-n{background:var(--go);color:var(--paper)}
 .ang{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;
   color:var(--ink);background:var(--sand);padding:3px 7px;flex:none}
 .hold,.secs{font-size:9.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
@@ -293,10 +298,10 @@ button.btn.quiet:hover{background:var(--paper-2)}
 .ref.isvid.on .clip{opacity:0}
 .ref .del{position:absolute;top:4px;right:4px;background:var(--paper);border:1px solid var(--rule-2);
   width:26px;height:26px;font-size:14px;line-height:1;cursor:pointer;color:var(--ink-2);padding:0}
-.ref.add{border:1px dashed var(--rule-2);cursor:pointer;flex-direction:column;gap:5px;font-size:10.5px;
-  font-weight:600;color:var(--ink-2);text-align:center;padding:10px;background:var(--paper);
+.ref.add{border:1px dashed var(--sand);cursor:pointer;flex-direction:column;gap:5px;font-size:10.5px;
+  font-weight:600;color:var(--ink-2);text-align:center;padding:10px;background:var(--sand-wash);
   line-height:1.35}
-.ref.add:hover{background:var(--sand-wash);border-color:var(--sand)}
+.ref.add:hover{background:var(--sand-mid);border-color:var(--ink-3)}
 .ref.add .plus{font-size:22px;color:var(--sand);line-height:1;font-weight:400}
 .ref.add small{font-weight:500;color:var(--ink-3);font-size:9.5px;line-height:1.3;display:block}
 .ref.busy{font-size:10.5px;color:var(--ink-3);border:1px dashed var(--rule-2);text-align:center;padding:8px}
@@ -362,15 +367,42 @@ details.why b{color:var(--ink);font-weight:600}
   letter-spacing:-.01em}
 .s-do.under{color:var(--ink-2);font-size:13.5px;margin-top:0}
 /* a shot we already hold */
-.s-meta .ondrive{font-size:9px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
-  color:var(--go);border:1px solid var(--go);padding:2px 6px;border-radius:2px}
+.s-meta .ondrive{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--go);border:1px solid var(--go);
+  padding:2px 6px;border-radius:2px}
+.s-meta .ondrive .ckico{width:9px;height:9px;stroke-width:2.6}
 .shot.has-footage{background:linear-gradient(90deg,rgba(28,107,74,.05),rgba(28,107,74,0) 62%);
   box-shadow:inset 3px 0 0 var(--go)}
-.shot.has-footage .s-txt{padding-left:13px}
-.havetag{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
-  color:var(--go);margin:0 0 7px;line-height:1.3}
-.havetag small{display:block;font-size:10px;font-weight:500;letter-spacing:0;text-transform:none;
-  color:var(--ink-3);margin-top:3px;word-break:break-word}
+/* the legend, so the two colours explain themselves */
+.shotkey{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin:10px 0 4px;
+  font-size:10.5px;color:var(--ink-3)}
+.shotkey span{display:inline-flex;align-items:center;gap:6px}
+.shotkey i{width:11px;height:11px;flex:none;display:block}
+.shotkey .k-film{background:var(--sand)}
+.shotkey .k-have{background:var(--go)}
+/* the green "already shot" box, under the upload rectangle */
+.havebox{margin:7px 0 0;border:1px solid var(--go);background:var(--go-wash);
+  border-radius:2px;padding:7px 8px}
+.hb-top{display:flex;align-items:center;gap:5px;margin:0;color:var(--go);
+  font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;line-height:1.2}
+.hb-file{margin:4px 0 0;font-size:10px;line-height:1.35;color:var(--ink-2);word-break:break-word}
+.ckico{width:11px;height:11px;flex:none;stroke:currentColor;stroke-width:2.3;fill:none;
+  stroke-linecap:round;stroke-linejoin:round}
+/* drag a shot to reorder it */
+.s-grip{display:none;cursor:grab;touch-action:none;padding:3px 2px;margin-left:-3px;
+  color:var(--rule-2);line-height:0}
+body[data-role="studio"] .s-grip{display:inline-flex}
+.s-grip svg{width:10px;height:16px;fill:currentColor}
+.s-grip:hover{color:var(--ink-3)}
+.s-grip:active{cursor:grabbing}
+li.shot.dragging{opacity:.55;background:var(--paper-2);cursor:grabbing}
+li.shot.dragging .s-grip{color:var(--ink-2)}
+ol.shots.reordering{user-select:none}
+ol.shots.reordering li.shot:not(.dragging){transition:transform .12s ease}
+.edreset{font-size:10px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;
+  background:none;border:0;color:var(--ink-3);cursor:pointer;padding:10px 8px;margin-left:4px;
+  text-decoration:underline;text-underline-offset:3px}
+.edreset:hover{color:var(--ink)}
 .shot.has-footage .ref.add{border-color:rgba(28,107,74,.35)}
 .shot.has-footage .ref.add .plus{color:var(--go)}
 .ascheck{display:flex!important;align-items:center;gap:8px;margin-bottom:10px;
@@ -590,7 +622,7 @@ body[data-role="creator"] .stagepill{display:none}
     </div>
 
     <footer>Two shoot mornings a week. 15 reels, 5 carousels, plus whatever she films along the way.
-      <span style="float:right;font-variant-numeric:tabular-nums">build 8</span></footer>
+      <span style="float:right;font-variant-numeric:tabular-nums">build 9</span></footer>
   </main>
 </div>
 
@@ -603,8 +635,8 @@ body[data-role="creator"] .stagepill{display:none}
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <!-- bump ?v= on every push so nobody is ever looking at a cached old build -->
-<script src="config.js?v=8"></script>
-<script src="plan-data.js?v=8"></script>
-<script src="app.js?v=8"></script>
+<script src="config.js?v=9"></script>
+<script src="plan-data.js?v=9"></script>
+<script src="app.js?v=9"></script>
 </body>
 </html>

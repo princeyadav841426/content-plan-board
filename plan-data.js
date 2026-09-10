@@ -14,13 +14,13 @@ window.PLAN_META = {
 };
 
 window.PLAN = [
-{w:1,head:"Week 1",sub:"15 – 21 Sept",note:"Her introduction. Two of these carry her voice for the first time.",
+{w:1,head:"Week 1",sub:"15 – 21 Sept",note:"Your introduction. Two of these carry your voice for the first time.",
  shoot:"<b>Sat 13 Sept</b> — one block before launch covers Friday, Saturday and Sunday. Tuesday's reel is already filmed.",posts:[
  {id:"r1",date:"Tue 15",type:"REEL",series:"6AM 01",vo:true,film:"filmed 11 Sept",edit:"12–14 Sept",
   title:"The 6am morning — her introduction",
-  what:"The morning ritual film with her voice over the top. Around 35 seconds.",
+  what:"The morning ritual film with your voice over the top. Around 40 seconds.",
   steps:["Already filmed. Nothing to shoot.","<b>Record the voiceover at home</b>, phone close to your mouth, quietest room. Sit down, don't stand.","Read it slowly, like you're telling one person. Record it <b>five or six times</b> — we pick the best, so there's no bad take."],
-  say:"I'm Swatti. Two kids, one very early alarm, and a city that never really slows down. For years I made everything beautiful for everybody else. This page is me finally doing it for myself — and taking you with me.",
+  say:"I'm Swatti. Two kids, one very early alarm, and a city that never really slows down. For years I made the mornings beautiful for everybody else. The breakfast, the school run, the whole house put back together before anyone noticed it had come apart. Nobody was making them beautiful for me. So this is where that changes. Same early alarm, same city, same two kids. Just done properly this time, and slowly enough that I actually get to enjoy it. Strong body. Soft life. Come with me.",
   note:"Ends on the line already in your bio: <b>Strong body. Soft life.</b> That line becomes the thing people know you for, so it goes on the very first post."},
  {id:"c1",date:"Wed 16",type:"CAROUSEL",series:"Who she is",film:"photos by 13 Sept",edit:"14 Sept",
   title:"Nine things about me",
@@ -38,7 +38,7 @@ window.PLAN = [
   what:"Your second voiceover reel. Getting dressed, while your voice explains what the page is for. 30 to 40 seconds.",
   steps:["Tripod facing the wardrobe. <b>Open it, take one outfit out.</b> 10 seconds.","The outfit <b>hanging on its own</b>, still. 6 seconds.","Close on your hands <b>putting jewellery on</b>. 8 seconds.","<b>Spray perfume with the light behind it</b> so the mist shows. Film it three or four times — it's the shot people stop for. 6 seconds.","You in the mirror, dressed, adjusting something. Face can be in this one. 8 seconds.","From behind — <b>walking out, closing the door</b>. 6 seconds.","Record the voiceover at home afterwards."],
   say:"This isn't a page about having a perfect life. It's about getting one per cent better every day and still enjoying the beautiful bits while you do it. Beauty, wellness, a home you actually want to be in — and being strong enough to carry all of it.",
-  note:"After this she's introduced herself twice and never once spoken to camera. That's the whole point of doing it this way."},
+  note:"After this you've introduced yourself twice and never once spoken to camera. That's the whole point of doing it this way."},
  {id:"r4",date:"Sun 20",type:"REEL",series:"6AM 02",film:"Sat 13 Sept",edit:"16–18 Sept",
   title:"Sunday reset",
   what:"The home reset. Real sound only, no talking, no music.",

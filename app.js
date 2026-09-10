@@ -84,6 +84,71 @@
     }
   };
 
+  /* ───────────────── media store (IndexedDB) ─────────────────
+     Photos and clips are kept as real blobs in IndexedDB, not as base64 in
+     localStorage — that is what makes 15-second video possible before live
+     sync exists, and it is why photos no longer blow the 5MB quota.
+     A reference entry is a string:
+       https://…            uploaded to Supabase (shared)
+       idb:<k> / idbv:<k>   this device only, photo / video
+       data:…               legacy, still rendered                         */
+
+  var Media = (function () {
+    var dbp = null, cache = {};
+    function db() {
+      if (dbp) return dbp;
+      dbp = new Promise(function (res, rej) {
+        if (!window.indexedDB) return rej(new Error('no indexeddb'));
+        var r = indexedDB.open('swatti-media', 1);
+        r.onupgradeneeded = function () {
+          if (!r.result.objectStoreNames.contains('m')) r.result.createObjectStore('m', { keyPath: 'k' });
+        };
+        r.onsuccess = function () { res(r.result); };
+        r.onerror = function () { rej(r.error); };
+      });
+      return dbp;
+    }
+    function bare(tok) { return String(tok).replace(/^idbv?:/, ''); }
+    return {
+      async save(blob, isVid) {
+        var d = await db();
+        var k = 'm' + Date.now() + Math.random().toString(36).slice(2, 7);
+        await new Promise(function (res, rej) {
+          var tx = d.transaction('m', 'readwrite');
+          tx.objectStore('m').put({ k: k, b: blob });
+          tx.oncomplete = res;
+          tx.onerror = function () { rej(tx.error); };
+          tx.onabort = function () { rej(tx.error || new Error('aborted')); };
+        });
+        return (isVid ? 'idbv:' : 'idb:') + k;
+      },
+      async url(tok) {
+        if (cache[tok]) return cache[tok];
+        var d = await db(), k = bare(tok);
+        var rec = await new Promise(function (res, rej) {
+          var tx = d.transaction('m', 'readonly'), q = tx.objectStore('m').get(k);
+          q.onsuccess = function () { res(q.result); };
+          q.onerror = function () { rej(q.error); };
+        });
+        if (!rec || !rec.b) return null;
+        cache[tok] = URL.createObjectURL(rec.b);
+        return cache[tok];
+      },
+      async del(tok) {
+        try {
+          var d = await db();
+          d.transaction('m', 'readwrite').objectStore('m').delete(bare(tok));
+        } catch (e) {}
+        if (cache[tok]) { URL.revokeObjectURL(cache[tok]); delete cache[tok]; }
+      }
+    };
+  })();
+
+  function isIdb(t) { return /^idbv?:/.test(String(t)); }
+  function isVideoRef(t) {
+    return /^idbv:/.test(String(t)) || /\.(mp4|mov|m4v|webm|qt)(\?|$)/i.test(String(t));
+  }
+
   function localSave() {
     try { localStorage.setItem(LKEY, JSON.stringify(S)); lsFull = false; return true; }
     catch (e) { lsFull = true; return false; }
@@ -172,6 +237,12 @@
   /* ───────────────── helpers ───────────────── */
 
   function esc(s) { return String(s == null ? '' : s).replace(/</g, '&lt;'); }
+
+  /* The plan text carries <b> tags so the shot list can emphasise the thing
+     that matters. Nobody should have to type angle brackets to edit it, so the
+     edit boxes speak stars instead and it is converted on the way in and out. */
+  function toPlain(s) { return String(s == null ? '' : s).replace(/<\/?b>/gi, '*').replace(/<[^>]+>/g, ''); }
+  function toRich(s) { return String(s == null ? '' : s).replace(/\*([^*\n]+)\*/g, '<b>$1</b>'); }
   function F(p, f) { var e = get('edit:' + p.id, {}); return e[f] !== undefined ? e[f] : p[f]; }
   function allPosts() { var a = []; PLAN.forEach(function (w) { a = a.concat(w.posts); }); return a; }
   function findPost(id) { return allPosts().filter(function (p) { return p.id === id; })[0]; }
@@ -246,14 +317,14 @@
     var items = [];
     PLAN.forEach(function (w, i) {
       var t = get('week:' + w.w, '');
-      if (t && t.trim()) items.push([i, null, w.head + ' &middot; her week', t]);
+      if (t && t.trim()) items.push([i, null, w.head + ' &middot; the week ahead', t]);
       if (get('audio:' + w.w, '')) items.push([i, null, w.head + ' &middot; voice note', 'Tap to listen.']);
     });
     allPosts().forEach(function (p) {
       var n = get('note:' + p.id, '');
       if (n && n.trim()) items.push([p.__wi, p.id, F(p, 'title'), n]);
     });
-    if (!items.length) return '<div class="inbox"><p class="none">Nothing from her yet. Her week notes, voice notes and per-post comments land here.</p></div>';
+    if (!items.length) return '<div class="inbox"><p class="none">Nothing from Swatti yet. Her week notes, voice notes and per-post comments land here.</p></div>';
     return '<div class="inbox">' + items.map(function (it) {
       return '<button class="ib" data-week="' + it[0] + '"' +
         (it[1] ? ' data-goto="' + it[1] + '"' : '') + '>' +
@@ -290,16 +361,42 @@
   /* ───────────────── post card ───────────────── */
 
   function refsHTML(p) {
-    var imgs = get('refs:' + p.id, []) || [];
+    var refs = get('refs:' + p.id, []) || [];
     var h = '';
-    imgs.forEach(function (src, i) {
-      h += '<div class="ref"><img src="' + src + '" alt="Reference ' + (i + 1) + '" loading="lazy">' +
+    refs.forEach(function (src, i) {
+      var vid = isVideoRef(src), lazy = isIdb(src);
+      var media = vid
+        ? '<video ' + (lazy ? 'data-tok="' + src + '"' : 'src="' + src + '"') +
+          ' controls muted playsinline preload="metadata"></video>'
+        : '<img ' + (lazy ? 'data-tok="' + src + '"' : 'src="' + src + '"') +
+          ' alt="Reference ' + (i + 1) + '" loading="lazy">';
+      h += '<div class="ref">' + media +
+           (lazy ? '<span class="loading">…</span>' : '') +
+           (vid ? '<span class="clip">CLIP</span>' : '') +
            '<button class="del" data-del="' + p.id + '" data-i="' + i + '" aria-label="Remove">&times;</button></div>';
     });
-    h += '<div class="ref add' + (imgs.length ? '' : ' wide') + '" data-add="' + p.id + '" role="button" tabindex="0">' +
-         '<span class="plus">+</span>' + (imgs.length ? 'Add a shot'
-           : 'Add reference shots<small>Drag photos here, or tap to browse</small>') + '</div>';
+    h += '<div class="ref add' + (refs.length ? '' : ' wide') + '" data-add="' + p.id + '" role="button" tabindex="0">' +
+         '<span class="plus">+</span>' + (refs.length ? 'Add a shot'
+           : 'Add shots &amp; clips<small>Drag photos or clips here, or tap to browse</small>') + '</div>';
     return h;
+  }
+
+  // fill in anything held on this device; called after any strip is written
+  function hydrateRefs(root) {
+    var els = (root || document).querySelectorAll('[data-tok]');
+    Array.prototype.forEach.call(els, function (el) {
+      var tok = el.getAttribute('data-tok');
+      el.removeAttribute('data-tok');
+      Media.url(tok).then(function (u) {
+        var box = el.closest('.ref'), spin = box && box.querySelector('.loading');
+        if (spin) spin.remove();
+        if (u) el.src = u;
+        else if (box) box.innerHTML = '<span class="loading">Not on this device</span>';
+      }).catch(function () {
+        var spin = el.closest('.ref') && el.closest('.ref').querySelector('.loading');
+        if (spin) spin.textContent = 'Could not load';
+      });
+    });
   }
 
   function pipeHTML(p) {
@@ -343,12 +440,13 @@
           '<div><span class="k">Posts</span><span class="v">' + p.date + '</span></div>' +
         '</div>' +
         pipeHTML(p) +
-        '<div class="refs"><p class="label">Reference shots</p>' +
+        '<div class="refs"><p class="label">Reference shots &amp; clips</p>' +
           '<div class="refzone" data-zone="' + p.id + '">' +
             '<div class="refstrip" id="refs-' + p.id + '">' + refsHTML(p) + '</div></div>' +
-          '<p class="drophint" id="drop-' + p.id + '"><b>Drag photos straight onto the strip</b> ' +
-            '&mdash; several at once is fine &mdash; or tap it to browse. On a Mac you can also copy ' +
-            'an image and press &#8984;V with this post open.</p>' +
+          '<p class="drophint" id="drop-' + p.id + '"><b>Photos and video clips, up to ' +
+            CLIP_SECONDS + ' seconds each.</b> Drag them straight onto the strip &mdash; several at ' +
+            'once is fine &mdash; or tap it to browse. On a Mac you can also copy an image and ' +
+            'press &#8984;V with this post open.</p>' +
         '</div>' +
         '<p class="label">What to film</p>' +
         '<ol class="film">' + steps.map(function (f) { return '<li>' + f + '</li>'; }).join('') + '</ol>' +
@@ -360,13 +458,16 @@
           '<div class="edfields">' +
             '<p class="edlabel">Title</p><textarea style="min-height:48px" data-edit="' + p.id + '" data-field="title">' + esc(F(p, 'title')) + '</textarea>' +
             '<p class="edlabel">One-line description</p><textarea style="min-height:48px" data-edit="' + p.id + '" data-field="what">' + esc(F(p, 'what')) + '</textarea>' +
-            '<p class="edlabel">Shot list &mdash; one step per line</p><textarea style="min-height:150px" data-edit="' + p.id + '" data-field="steps">' + esc(steps.join('\n')) + '</textarea>' +
+            '<p class="edlabel">Shot list &mdash; one step per line</p>' +
+            '<p class="edtip">Put *stars* around anything that should come out bold.</p>' +
+            '<textarea style="min-height:150px" data-edit="' + p.id + '" data-field="steps">' +
+              esc(steps.map(toPlain).join('\n')) + '</textarea>' +
             '<p class="edlabel">' + (p.vo ? 'Voiceover' : 'Text on screen') + '</p><textarea style="min-height:78px" data-edit="' + p.id + '" data-field="say">' + esc(say || '') + '</textarea>' +
           '</div>' +
         '</div>' +
         '<div class="pnote">' +
-          '<p class="label">' + (role === 'studio' ? 'Her note on this one' : 'Your note on this one') + '</p>' +
-          (role === 'studio' && !note ? '<p class="from">Nothing from her on this post yet.</p>' : '') +
+          '<p class="label">' + (role === 'studio' ? 'Swatti&rsquo;s note on this one' : 'Your note on this one') + '</p>' +
+          (role === 'studio' && !note ? '<p class="from">Nothing from Swatti on this post yet.</p>' : '') +
           '<textarea placeholder="Couldn\'t get this shot, did it differently, don\'t like the idea…" data-note="' + p.id + '">' +
             esc(note) + '</textarea></div>' +
       '</div></article>';
@@ -411,9 +512,9 @@
       '<div class="shootbar"><span class="cam">SHOOT</span><span>' + w.shoot + '</span></div>' +
       '<div class="checkin">' +
         '<div class="checkin-h">' +
-          '<h3>' + (studio ? 'Her week &mdash; what she sent' : 'What does your week look like?') + '</h3>' +
+          '<h3>' + (studio ? 'Swatti&rsquo;s week' : 'What does your week look like?') + '</h3>' +
           '<p class="sub">' + (studio
-            ? 'Whatever she typed or recorded for this week. Plan the filming around it.'
+            ? 'What Swatti typed or recorded for this week. Plan the filming around it.'
             : 'Tell us before the week starts and Prince plans the filming around your real days.') + '</p>' +
         '</div>' +
         '<div class="checkin-b">' +
@@ -444,6 +545,7 @@
 
     renderWeekNav();
     renderRail();
+    hydrateRefs(document.getElementById('weekbody'));
   }
 
   function refreshWeekMeta() {
@@ -620,9 +722,11 @@
       e.stopPropagation();
       var did = del.getAttribute('data-del'), di = +del.getAttribute('data-i');
       var arr = (get('refs:' + did, []) || []).slice();
-      arr.splice(di, 1); put('refs:' + did, arr);
+      var gone = arr.splice(di, 1)[0];
+      if (gone && isIdb(gone)) Media.del(gone);
+      put('refs:' + did, arr);
       var strip = document.getElementById('refs-' + did);
-      if (strip) strip.innerHTML = refsHTML(findPost(did));
+      if (strip) { strip.innerHTML = refsHTML(findPost(did)); hydrateRefs(strip); }
       return;
     }
 
@@ -724,7 +828,7 @@
       var pid = t.getAttribute('data-edit'), field = t.getAttribute('data-field');
       var e2 = Object.assign({}, get('edit:' + pid, {}));
       e2[field] = field === 'steps'
-        ? t.value.split('\n').filter(function (x) { return x.trim(); })
+        ? t.value.split('\n').filter(function (x) { return x.trim(); }).map(toRich)
         : t.value;
       act = ['edit:' + pid, e2];
       var card = document.getElementById('card-' + pid);
@@ -745,34 +849,80 @@
 
   /* ───────────────── image upload ───────────────── */
 
-  function processOne(id, file) {
+  var CLIP_SECONDS = 15;
+  var CLIP_MAX_MB = 90;
+
+  function shrinkImage(file) {
     return new Promise(function (resolve) {
-      if (!file || !/^image\//.test(file.type)) return resolve(null);
-      var live = Store.mode === 'live';
       var fr = new FileReader();
       fr.onerror = function () { resolve(null); };
       fr.onload = function () {
         var img = new Image();
         img.onerror = function () { resolve(null); };
         img.onload = function () {
-          var max = live ? 1100 : 760;
-          var sc = Math.min(1, max / Math.max(img.width, img.height));
+          var sc = Math.min(1, 1400 / Math.max(img.width, img.height));
           var cv = document.createElement('canvas');
           cv.width = Math.round(img.width * sc);
           cv.height = Math.round(img.height * sc);
           cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
-          cv.toBlob(async function (blob) {
-            var url = blob
-              ? await Store.upload('refs/' + id + '-' + Date.now() + '-' +
-                  Math.random().toString(36).slice(2, 7) + '.jpg', blob, 'image/jpeg')
-              : null;
-            resolve(url || cv.toDataURL('image/jpeg', live ? 0.82 : 0.7));
-          }, 'image/jpeg', live ? 0.85 : 0.74);
+          cv.toBlob(function (blob) { resolve(blob || null); }, 'image/jpeg', 0.85);
         };
         img.src = fr.result;
       };
       fr.readAsDataURL(file);
     });
+  }
+
+  function videoSeconds(file) {
+    return new Promise(function (resolve) {
+      var v = document.createElement('video'), u = URL.createObjectURL(file);
+      var done = function (d) { URL.revokeObjectURL(u); resolve(d); };
+      v.preload = 'metadata';
+      v.muted = true;
+      // Some recordings (webm especially) report Infinity until the browser is
+      // forced to seek to the end, so ask for it rather than giving up.
+      v.onloadedmetadata = function () {
+        if (isFinite(v.duration) && v.duration > 0) return done(v.duration);
+        v.ontimeupdate = function () {
+          v.ontimeupdate = null;
+          done(isFinite(v.duration) && v.duration > 0 ? v.duration : null);
+        };
+        try { v.currentTime = 1e101; } catch (e) { done(null); }
+      };
+      v.onerror = function () { done(null); };
+      setTimeout(function () { done(null); }, 9000);
+      v.src = u;
+    });
+  }
+
+  function ext(t) { return /mp4/.test(t) ? 'mp4' : /quicktime|mov/.test(t) ? 'mov' : /webm/.test(t) ? 'webm' : 'mp4'; }
+
+  // one file in, one reference token out (or a reason it was refused)
+  async function processOne(id, file) {
+    var vid = /^video\//.test(file.type);
+
+    if (vid) {
+      if (file.size > CLIP_MAX_MB * 1024 * 1024) {
+        return { err: file.name + ' is ' + Math.round(file.size / 1048576) + 'MB — too big to keep here. Send that one on WhatsApp.' };
+      }
+      var secs = await videoSeconds(file);
+      if (secs !== null && secs > CLIP_SECONDS + 0.6) {
+        return { err: file.name + ' is ' + Math.round(secs) + ' seconds. Reference clips are capped at ' + CLIP_SECONDS + ' — trim it first.' };
+      }
+      var vurl = await Store.upload('refs/' + id + '-' + Date.now() + '-' +
+        Math.random().toString(36).slice(2, 7) + '.' + ext(file.type), file, file.type);
+      if (vurl) return { tok: vurl };
+      try { return { tok: await Media.save(file, true) }; }
+      catch (e) { return { err: 'This device would not store ' + file.name + '. Switch live sync on.' }; }
+    }
+
+    var blob = await shrinkImage(file);
+    if (!blob) return { err: null };
+    var url = await Store.upload('refs/' + id + '-' + Date.now() + '-' +
+      Math.random().toString(36).slice(2, 7) + '.jpg', blob, 'image/jpeg');
+    if (url) return { tok: url };
+    try { return { tok: await Media.save(blob, false) }; }
+    catch (e) { return { err: 'This device would not store ' + file.name + '. Switch live sync on.' }; }
   }
 
   function dropMsg(id, html, warn) {
@@ -786,12 +936,12 @@
   async function addImages(id, files) {
     if (!id) return;
     var all = Array.prototype.slice.call(files || []);
-    var list = all.filter(function (f) { return f && /^image\//.test(f.type); });
+    var list = all.filter(function (f) { return f && /^(image|video)\//.test(f.type); });
     var skipped = all.length - list.length;
 
     if (!list.length) {
       dropMsg(id, all.length
-        ? '<b>Only photos can go here.</b> A video reference needs live sync switched on — send it on WhatsApp for now.'
+        ? '<b>Photos and video clips only.</b> That file was neither.'
         : '<b>Nothing came through.</b> Try tapping the box to browse instead.', true);
       return;
     }
@@ -802,30 +952,28 @@
         '<div class="ref busy">Adding ' + list.length + '…</div>');
     }
 
-    var added = 0, full = false;
+    var added = 0, errs = [];
     for (var i = 0; i < list.length; i++) {
-      var url = await processOne(id, list[i]);
-      if (!url) continue;
-      var ok = put('refs:' + id, (get('refs:' + id, []) || []).concat([url]));
-      if (!ok && Store.mode !== 'live') { full = true; break; }
-      added++;
+      var r = await processOne(id, list[i]);
+      if (r && r.tok) {
+        put('refs:' + id, (get('refs:' + id, []) || []).concat([r.tok]));
+        added++;
+      } else if (r && r.err) errs.push(r.err);
     }
 
     var s2 = document.getElementById('refs-' + id);
-    if (s2) s2.innerHTML = refsHTML(findPost(id));
+    if (s2) { s2.innerHTML = refsHTML(findPost(id)); hydrateRefs(s2); }
 
-    if (full) {
-      dropMsg(id, '<b>This device is full.</b> The photos already here are safe, but new ones ' +
-        'won\'t stick until live sync is switched on.', true);
-      syncBadge();
-    } else if (added) {
-      dropMsg(id, '<b>' + added + (added === 1 ? ' photo added.' : ' photos added.') + '</b> ' +
-        (skipped ? skipped + ' file' + (skipped > 1 ? 's were' : ' was') + ' not a photo and got skipped. ' : '') +
-        'Drag more onto the strip any time.', false);
-      flash(added === 1 ? 'Reference added.' : added + ' references added.');
-    } else {
-      dropMsg(id, '<b>Those files couldn\'t be read.</b> Try a JPG or PNG.', true);
-    }
+    var msg = '';
+    if (added) msg += '<b>' + added + (added === 1 ? ' added.' : ' added.') + '</b> ';
+    if (skipped) msg += skipped + ' file' + (skipped > 1 ? 's were' : ' was') +
+      ' neither a photo nor a clip. ';
+    if (errs.length) msg += errs.join(' ');
+    if (!added && !errs.length && !skipped) msg = '<b>Those files couldn\'t be read.</b> Try a JPG, PNG or MP4.';
+    if (added && !errs.length) msg += 'Drag more onto the strip any time.';
+    dropMsg(id, msg, !added);
+    if (added) flash(added === 1 ? 'Reference added.' : added + ' references added.');
+    syncBadge();
   }
 
   document.getElementById('filepick').addEventListener('change', function () {

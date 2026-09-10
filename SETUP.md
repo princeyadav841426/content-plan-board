@@ -34,7 +34,8 @@ editing.
 - **From Swatti** — a sidebar inbox collecting everything she's sent: week notes, voice notes,
   per-post comments. Tap one to jump to it.
 - **Edit the words** — a button inside each post opens the title, one-liner, shot list and
-  on-screen text for editing. Saves as you type.
+  on-screen text for editing. Saves as you type. To make something bold, put `*stars*` around
+  it — no HTML, and the tags never appear in the box.
 - The month calendar carries the pipeline stage, the counts and the full schedule table.
 
 Down the left on a laptop: the month's progress, a mini calendar of every post (a corner mark
@@ -42,21 +43,25 @@ is a filming morning), and the week list. On a phone that sidebar moves into **F
 
 ---
 
-## Adding reference shots
+## Adding reference shots and clips
 
-Available in **both views**, on every post, with no mode to switch on first — that was the thing
-that used to be hidden.
+**Photos and video, both.** Clips are capped at **15 seconds** each — long enough to show an
+angle, short enough that the page stays quick. Anything longer is refused with the actual
+length in the message, so you know exactly what to trim.
 
-- **Drag photos onto the strip.** Several at once is fine.
+Available in **both views**, on every post, with no mode to switch on first.
+
+- **Drag photos or clips onto the strip.** Several at once is fine, mixed is fine.
 - **Tap the box** to browse — this is the one that works on a phone or iPad.
 - **⌘V** pastes a copied image into whichever post is open.
 
-Photos are shrunk in the browser before they're stored, so the page stays fast. Landscape
-references are shown whole, never cropped or squashed. Drop a video and it says so rather than
-silently ignoring it — video references need live sync (below) switched on.
+Photos are shrunk in the browser before they're stored. Clips are kept as they are. Everything
+is held as a real file in the browser's own media store, not squeezed into text storage — which
+is why photos used to silently vanish on reload once you'd added a dozen, and no longer do.
+Landscape and portrait are both shown whole, never cropped or squashed.
 
-If a photo doesn't stick, the page now tells you why instead of failing quietly. Almost always
-that means the browser's storage is full, which live sync fixes.
+Until live sync is on, those files live on **that device only** — she won't see yours and you
+won't see hers. That's the one remaining reason to do the Supabase step below.
 
 ## Voice notes
 

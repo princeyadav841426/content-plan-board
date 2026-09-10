@@ -480,16 +480,22 @@ body[data-role="creator"] .stagepill{display:none}
       <div id="monthextra"></div>
     </div>
 
-    <footer>Two shoot mornings a week. 15 reels, 5 carousels, plus whatever she films along the way.</footer>
+    <footer>Two shoot mornings a week. 15 reels, 5 carousels, plus whatever she films along the way.
+      <span style="float:right;font-variant-numeric:tabular-nums">build 4</span></footer>
   </main>
 </div>
 
-<input type="file" id="filepick" accept="image/*,video/*" multiple hidden>
+<!-- accept is only a hint to the OS dialog; the real filtering happens in app.js.
+     The explicit extensions are here because some builds of Chrome grey out
+     .mov / .heic even when video/* and image/* are listed. -->
+<input type="file" id="filepick" multiple hidden
+  accept="image/*,video/*,.jpg,.jpeg,.png,.heic,.heif,.webp,.gif,.mp4,.mov,.m4v,.webm,.avi">
 <input type="file" id="audiopick" accept="audio/*" hidden>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="config.js"></script>
-<script src="plan-data.js"></script>
-<script src="app.js"></script>
+<!-- bump ?v= on every push so nobody is ever looking at a cached old build -->
+<script src="config.js?v=4"></script>
+<script src="plan-data.js?v=4"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>

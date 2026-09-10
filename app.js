@@ -916,10 +916,16 @@
       catch (e) { return { err: 'This device would not store ' + file.name + '. Switch live sync on.' }; }
     }
 
-    var blob = await shrinkImage(file);
-    if (!blob) return { err: null };
+    // Canvas can't decode every format a phone produces (HEIC above all), so a
+    // failed shrink falls back to keeping the original file rather than refusing it.
+    var blob = await shrinkImage(file), type = 'image/jpeg', xt = 'jpg';
+    if (!blob) {
+      if (file.size > CLIP_MAX_MB * 1024 * 1024) return { err: file.name + ' is too big to keep here.' };
+      blob = file; type = file.type || 'image/jpeg';
+      xt = (file.name.split('.').pop() || 'jpg').toLowerCase().slice(0, 5);
+    }
     var url = await Store.upload('refs/' + id + '-' + Date.now() + '-' +
-      Math.random().toString(36).slice(2, 7) + '.jpg', blob, 'image/jpeg');
+      Math.random().toString(36).slice(2, 7) + '.' + xt, blob, type);
     if (url) return { tok: url };
     try { return { tok: await Media.save(blob, false) }; }
     catch (e) { return { err: 'This device would not store ' + file.name + '. Switch live sync on.' }; }

@@ -251,8 +251,8 @@ button.btn.quiet:hover{background:var(--paper-2)}
 .shothead{display:grid;grid-template-columns:1fr 104px;gap:18px;align-items:end;
   padding-bottom:9px;border-bottom:2px solid var(--sand)}
 .shothead .label{margin:0}
-.shots{margin:0 0 26px;padding:0;list-style:none}
-.shot{box-shadow:inset 3px 0 0 var(--sand);
+.shots{margin:0 0 26px;padding:0;list-style:none;position:relative}
+.shot{box-shadow:inset 3px 0 0 var(--sand);position:relative;
   display:grid;grid-template-columns:1fr 104px;gap:18px;align-items:start;
   padding:15px 0 15px 13px;border-bottom:1px solid var(--rule)}
 .s-txt{min-width:0}
@@ -382,23 +382,27 @@ details.why b{color:var(--ink);font-weight:600}
 .shotkey .k-have{background:var(--go)}
 /* the green "already shot" box, under the upload rectangle */
 .havebox{margin:7px 0 0;border:1px solid var(--go);background:var(--go-wash);
-  border-radius:2px;padding:7px 8px}
-.hb-top{display:flex;align-items:center;gap:5px;margin:0;color:var(--go);
-  font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;line-height:1.2}
-.hb-file{margin:4px 0 0;font-size:10px;line-height:1.35;color:var(--ink-2);word-break:break-word}
+  border-radius:2px;padding:6px 8px}
+.hb-file{margin:0;font-size:10px;line-height:1.35;color:var(--go);font-weight:600;
+  word-break:break-word}
 .ckico{width:11px;height:11px;flex:none;stroke:currentColor;stroke-width:2.3;fill:none;
   stroke-linecap:round;stroke-linejoin:round}
 /* drag a shot to reorder it */
-.s-grip{display:none;cursor:grab;touch-action:none;padding:3px 2px;margin-left:-3px;
-  color:var(--rule-2);line-height:0}
-body[data-role="studio"] .s-grip{display:inline-flex}
+.s-grip{display:none;position:absolute;left:-19px;top:17px;cursor:grab;touch-action:none;
+  padding:4px 3px;color:var(--rule-2);line-height:0;opacity:0;transition:opacity .12s}
+body[data-role="studio"] .s-grip{display:block}
+body[data-role="studio"] .shot:hover .s-grip,
+body[data-role="studio"] .shot.dragging .s-grip{opacity:1}
 .s-grip svg{width:10px;height:16px;fill:currentColor}
-.s-grip:hover{color:var(--ink-3)}
+.s-grip:hover{color:var(--ink-2)}
 .s-grip:active{cursor:grabbing}
-li.shot.dragging{opacity:.55;background:var(--paper-2);cursor:grabbing}
-li.shot.dragging .s-grip{color:var(--ink-2)}
-ol.shots.reordering{user-select:none}
-ol.shots.reordering li.shot:not(.dragging){transition:transform .12s ease}
+li.shot.dragging{opacity:.4}
+ol.shots.reordering{user-select:none;-webkit-user-select:none}
+.dropline{height:2px;background:var(--ink);margin:-1px 0;position:relative;list-style:none}
+.dropline::before{content:"";position:absolute;left:-4px;top:-3px;width:8px;height:8px;
+  border-radius:50%;background:var(--ink)}
+/* touch needs the handle permanently visible — there is no hover on a phone */
+@media (hover:none){body[data-role="studio"] .s-grip{opacity:1}}
 .edreset{font-size:10px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;
   background:none;border:0;color:var(--ink-3);cursor:pointer;padding:10px 8px;margin-left:4px;
   text-decoration:underline;text-underline-offset:3px}
@@ -411,6 +415,14 @@ ol.shots.reordering li.shot:not(.dragging){transition:transform .12s ease}
 .ascheck input{width:auto!important;margin:0!important;display:inline-block!important}
 .asfile{display:none}
 .asform.wanthave .asfile{display:block}
+.s-edit{font-size:9.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  background:none;border:0;color:var(--ink-3);cursor:pointer;padding:2px 4px;
+  text-decoration:underline;text-underline-offset:3px}
+.s-edit:hover{color:var(--ink)}
+.shotform{display:none;border-left:3px solid var(--sand);background:var(--sand-wash);
+  padding:13px 14px;margin:10px 0 2px}
+.shotform.open{display:block}
+.shotform .asrow label:last-child{flex:0 0 90px}
 .s-kill{font-size:9.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
   background:none;border:0;color:var(--ink-3);cursor:pointer;padding:2px 4px;
   text-decoration:underline;text-underline-offset:3px}
@@ -565,7 +577,8 @@ body[data-role="creator"] .stagepill{display:none}
   .chip.posted{background:var(--go)}
   .chip.posted::after{display:none}
   /* the two columns become two rows — the shot, then the frame to copy */
-  .shot{grid-template-columns:1fr;gap:10px;padding:16px 0}
+  .shot{grid-template-columns:1fr;gap:10px;padding:16px 0 16px 26px}
+  .s-grip{left:2px;top:15px;opacity:1;padding:6px 5px}
   .shothead{grid-template-columns:1fr}
   .s-do{max-width:none}
   .card.is-posted .body{padding-left:14px}
@@ -622,7 +635,7 @@ body[data-role="creator"] .stagepill{display:none}
     </div>
 
     <footer>Two shoot mornings a week. 15 reels, 5 carousels, plus whatever she films along the way.
-      <span style="float:right;font-variant-numeric:tabular-nums">build 9</span></footer>
+      <span style="float:right;font-variant-numeric:tabular-nums">build 10</span></footer>
   </main>
 </div>
 
@@ -635,8 +648,8 @@ body[data-role="creator"] .stagepill{display:none}
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <!-- bump ?v= on every push so nobody is ever looking at a cached old build -->
-<script src="config.js?v=9"></script>
-<script src="plan-data.js?v=9"></script>
-<script src="app.js?v=9"></script>
+<script src="config.js?v=10"></script>
+<script src="plan-data.js?v=10"></script>
+<script src="app.js?v=10"></script>
 </body>
 </html>

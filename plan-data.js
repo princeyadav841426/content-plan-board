@@ -44,7 +44,7 @@ window.PLAN_META = {
      seeing "Nothing to film" on a build where the line no longer existed.
      Raising rev retires those stale copies (kept as editbak:<id>) so the
      plan in this file is what everybody sees. */
-  rev: 2
+  rev: 3
 };
 
 window.PLAN = [
@@ -53,34 +53,34 @@ window.PLAN = [
 
  {id:"r1",date:"Tue 15",type:"REEL",series:"6AM 01",pillar:"Lifestyle",vo:true,film:"filmed 11 Sept",edit:"12–14 Sept",
   title:"My 6am morning — the introduction reel",
-  what:"All seven shots are already filmed and on the drive. All that's left is your voice over the top. Around 40 seconds.",
+  what:"Your 6am morning, filmed in seven pieces, with your voice over the top. Around 40 seconds.",
   shots:[
-   {a:"WIDE",h:"tripod",have:true,file:"24 Wide shot waking up in bed.mp4",
+   {a:"WIDE",h:"tripod",
     n:"Waking up in bed",
-    do:"Whole bed in frame, morning light coming in. You sit up slowly. Also on the drive: the version staying under the blanket.",s:4},
-   {a:"WIDE",h:"tripod",have:true,file:"28 Wide walking shot from behind.mp4",
+    do:"Whole bed in frame, morning light coming in. You sit up slowly. Get a second take staying under the blanket.",s:4},
+   {a:"WIDE",h:"tripod",
     n:"Walking through the house",
-    do:"From behind, down the hallway. There is a second hallway take and a door opening to cut between.",s:4},
-   {a:"MEDIUM",h:"tripod",have:true,file:"04 Medium shot bathroom mirror.mp4",
+    do:"From behind, down the hallway. Take it twice, and once more of a door opening, so there is something to cut between.",s:4},
+   {a:"MEDIUM",h:"tripod",
     n:"Bathroom — mirror and taps",
-    do:"At the mirror, then the tap running and the toothbrush in the tumbler. Three separate clips on the drive.",s:6},
-   {a:"CLOSE",h:"tripod",have:true,file:"31 Close-up skincare application.mp4",
+    do:"At the mirror, then the tap running, then the toothbrush in the tumbler. Three separate takes, not one long one.",s:6},
+   {a:"CLOSE",h:"tripod",
     n:"Skincare on the shelf",
-    do:"Pump bottle, cream jar in your hand, product going onto skin. Three close-ups.",s:5},
-   {a:"CLOSE",h:"tripod",have:true,file:"08 Close-up coffee machine grinding.mp4",
+    do:"Pump bottle, cream jar in your hand, product going onto skin. Three close-ups, hands only.",s:5},
+   {a:"CLOSE",h:"tripod",
     n:"Coffee, start to finish",
-    do:"The longest run on the drive — grinder, dial, espresso pulling, steam wand, milk pour, cup on the counter. Nine clips.",s:10},
-   {a:"MEDIUM",h:"tripod",have:true,file:"21 Medium shot cooking at stove.mp4",
+    do:"The longest run of the morning — grinder, dial, espresso pulling, steam wand, milk pour, cup on the counter. Film each step on its own.",s:10},
+   {a:"MEDIUM",h:"tripod",
     n:"Breakfast on the stove",
-    do:"Reaching into the fridge, egg cracking into the pan, top-down on the stove, plated up. Six clips.",s:8},
-   {a:"WIDE",h:"tripod",have:true,file:"23 Wide breakfast table shot.mp4",
+    do:"Reaching into the fridge, egg cracking into the pan, top-down on the stove, plated up. Five or six short takes.",s:8},
+   {a:"WIDE",h:"tripod",
     n:"Sitting down to eat",
-    do:"The wide of the laid table, and the living-room stretch to close on.",s:4},
+    do:"The wide of the laid table, and one of the living room to close on.",s:4},
    {do:"<b>Record the voiceover at home</b> — phone close to your mouth, quietest room in the house. Sit down, don't stand."},
    {do:"<b>Don't perform it.</b> Say it the way you'd say it to a friend on the phone. A small stumble or an 'um' is fine — that take is usually the one we use."},
    {do:"Record it <b>five or six times</b>. We pick the best one, so there is no bad take."}],
   say:"Hi. I've had this page for years and I've posted almost nothing on it. Not because I didn't want to. I'd start, life would get busy, and that would be that. So this time I'm doing it properly. Three months, posting regularly, no disappearing. My mornings, my home, the interior design course I just started. The days that actually look like my life, not the perfect version of it. I don't know how it's going to go. But if that's something you'd want to watch, stay.",
-  note:"<b>The three months is the promise</b>, and the promise is what makes someone follow instead of just watching. Admitting you've been quiet for years is what makes the rest of it believable — nobody follows a page that claims it was always perfect. No mention of the children here; that comes later, and only partly. <b>All 32 clips are in the Morning Ritual folder on the drive</b> — the seven rows above are how they group up."},
+  note:"<b>The three months is the promise</b>, and the promise is what makes someone follow instead of just watching. Admitting you've been quiet for years is what makes the rest of it believable — nobody follows a page that claims it was always perfect. No mention of the children here; that comes later, and only partly."},
 
  {id:"c1",date:"Wed 16",type:"CAROUSEL",series:"Who she is",pillar:"Lifestyle",film:"photos by 13 Sept",edit:"14 Sept",
   title:"Nine things about me — photo post",

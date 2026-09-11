@@ -510,28 +510,56 @@
   /* Studio-only: put another shot on the end of any post, with its own upload
      frame. New shots go on the END on purpose — appending cannot disturb the
      references already sitting on shots 1..n. */
+  /* The same fields serve "Add a shot" and "Edit this shot". Editing in place
+     never changes a shot's index, so the references pinned to it stay put —
+     that is what makes changing a shot safe to do at any time. */
+  function shotFields(sh) {
+    sh = sh || {};
+    var sel = function (v, cur) { return v === cur ? ' selected' : ''; };
+    return '<div class="asrow">' +
+        '<label>Angle<select data-asf="a">' +
+          ANGLES.map(function (a) { return '<option value="' + a.v + '"' + sel(a.v, sh.a) + '>' + a.t + '</option>'; }).join('') +
+          '<option value=""' + (sh.a ? '' : ' selected') + '>Not a shot &mdash; just a step</option></select></label>' +
+        '<label>Camera<select data-asf="h">' +
+          '<option value="tripod"' + sel('tripod', sh.h) + '>On the tripod</option>' +
+          '<option value="hand"' + sel('hand', sh.h) + '>In your hand</option>' +
+          '<option value=""' + (sh.h ? '' : ' selected') + '>Doesn&rsquo;t matter</option></select></label>' +
+        '<label>Seconds<input type="number" min="1" max="60" step="1" value="' +
+          (sh.s || '') + '" data-asf="s"></label>' +
+      '</div>' +
+      '<label class="asdo">Shot name<input type="text" data-asf="n" value="' +
+        esc(toPlain(sh.n || '')) + '" placeholder="Coffee being poured"></label>' +
+      '<label class="asdo">How to shoot it<input type="text" data-asf="do" value="' +
+        esc(toPlain(sh.do || '')) + '" placeholder="Phone close to the cup, sound on. Fill the frame."></label>' +
+      '<label class="ascheck"><input type="checkbox" data-asf="have"' + (sh.have ? ' checked' : '') + '>' +
+        '<span>Already shot &mdash; we have this one</span></label>' +
+      '<label class="asdo asfile"><input type="text" data-asf="file" value="' + esc(sh.file || '') +
+        '" placeholder="Which clip, e.g. 08 Close-up coffee machine.mp4"></label>';
+  }
+
+  /* read a filled-in field set back out into a shot object */
+  function readShotFields(wrap) {
+    var val = function (n) { var el = wrap.querySelector('[data-asf="' + n + '"]'); return el ? el.value.trim() : ''; };
+    var nameTxt = val('n'), doTxt = val('do');
+    if (!nameTxt && !doTxt) return null;
+    var sh = {};
+    if (nameTxt) sh.n = toRich(nameTxt);
+    if (doTxt) sh.do = toRich(doTxt);
+    else if (nameTxt) { sh.do = sh.n; delete sh.n; }
+    var a = val('a'), h = val('h'), sec = parseInt(val('s'), 10);
+    if (a) sh.a = a;
+    if (h) sh.h = h;
+    if (sec > 0) sh.s = sec;
+    var hb = wrap.querySelector('[data-asf="have"]');
+    if (hb && hb.checked) { sh.have = true; if (val('file')) sh.file = val('file'); }
+    return sh;
+  }
+
   function addShotHTML(p) {
     return '<div class="addshot studio-only" id="as-' + p.id + '">' +
       '<button class="addshotbtn" data-addshot="' + p.id + '">+ Add a shot</button>' +
       '<div class="asform">' +
-        '<div class="asrow">' +
-          '<label>Angle<select data-asf="a">' +
-            ANGLES.map(function (a) { return '<option value="' + a.v + '">' + a.t + '</option>'; }).join('') +
-            '<option value="">Not a shot &mdash; just a step</option></select></label>' +
-          '<label>Camera<select data-asf="h">' +
-            '<option value="tripod">On the tripod</option>' +
-            '<option value="hand">In your hand</option>' +
-            '<option value="">Doesn&rsquo;t matter</option></select></label>' +
-          '<label>Seconds<input type="number" min="1" max="60" step="1" value="4" data-asf="s"></label>' +
-        '</div>' +
-        '<label class="asdo">Shot name' +
-          '<input type="text" data-asf="n" placeholder="Coffee being poured"></label>' +
-        '<label class="asdo">How to shoot it' +
-          '<input type="text" data-asf="do" placeholder="Phone close to the cup, sound on. Fill the frame."></label>' +
-        '<label class="ascheck"><input type="checkbox" data-asf="have">' +
-          '<span>Already filmed &mdash; it&rsquo;s on the drive</span></label>' +
-        '<label class="asdo asfile"><input type="text" data-asf="file" ' +
-          'placeholder="Which clip on the drive, e.g. 08 Close-up coffee machine.mp4"></label>' +
+        shotFields(null) +
         '<div class="asbtns">' +
           '<button class="assave" data-assave="' + p.id + '">Add this shot</button>' +
           '<button class="ascancel" data-ascancel="' + p.id + '">Cancel</button>' +
@@ -564,19 +592,23 @@
        a version of this shot — it does NOT mean skip it. The same shot from a
        different angle is often still worth taking. */
     var med = '<div class="refstrip" id="' + dom + '">' + refsHTML(k, have) + '</div>';
-    if (have) {
-      med += '<div class="havebox">' +
-        '<p class="hb-top">' + CHECK + 'Already shot</p>' +
-        (sh.file ? '<p class="hb-file">' + esc(sh.file) + '</p>' : '') +
-        '</div>';
-    }
+    /* The pill in the meta row already says ALREADY SHOT. This box exists only
+       to name the clip — saying it twice was Prince's complaint, so no label. */
+    if (have && sh.file) med += '<div class="havebox"><p class="hb-file">' + esc(sh.file) + '</p></div>';
     med += '<p class="smsg" id="smsg-' + dom + '"></p>';
 
     return '<li class="shot' + (have ? ' has-footage' : '') + '">' +
+      '<span class="s-grip studio-only" title="Drag to move">' + GRIP + '</span>' +
       '<div class="s-txt"><div class="s-meta">' +
-        '<span class="s-grip studio-only" title="Drag to reorder">' + GRIP + '</span>' + meta +
+        meta +
+        '<button class="s-edit studio-only" data-shotedit="' + p.id + '" data-i="' + i + '">Edit</button>' +
         '<button class="s-kill studio-only" data-killshot="' + p.id + '" data-i="' + i +
-        '" title="Remove this shot">Remove</button></div>' + body + '</div>' +
+        '" title="Remove this shot">Remove</button></div>' + body +
+        '<div class="shotform studio-only" id="sf-' + p.id + '__' + i + '">' +
+          shotFields(sh) +
+          '<div class="asbtns"><button class="assave" data-shotsave="' + p.id + '" data-i="' + i + '">Save this shot</button>' +
+          '<button class="ascancel" data-shotcancel="' + p.id + '" data-i="' + i + '">Cancel</button></div>' +
+        '</div></div>' +
       '<div class="s-med" data-zone="' + k + '">' + med + '</div></li>';
   }
 
@@ -743,6 +775,20 @@
   }
 
   /* ───────────────── week view ───────────────── */
+
+  /* Redraw a single card. renderWeek() rebuilds every post in the week and
+     throws away the scroll position, which made reordering feel broken. */
+  function refreshCard(pid) {
+    var p = findPost(pid), old = document.getElementById('card-' + pid);
+    if (!p || !old) { renderWeek(); return; }
+    var box = document.createElement('div');
+    box.innerHTML = postHTML(p);
+    var fresh = box.firstChild;
+    old.parentNode.replaceChild(fresh, old);
+    hydrateRefs(fresh);
+    refreshWeekMeta();
+    renderRail();
+  }
 
   function renderWeekNav() {
     document.getElementById('weeknav').innerHTML = PLAN.map(function (w, i) {
@@ -1031,6 +1077,51 @@
       return;
     }
 
+    var se = t.closest('[data-shotedit]');
+    if (se) {
+      e.stopPropagation();
+      var sfw = document.getElementById('sf-' + se.getAttribute('data-shotedit') + '__' + se.getAttribute('data-i'));
+      if (sfw) {
+        var on = sfw.classList.toggle('open');
+        se.textContent = on ? 'Close' : 'Edit';
+        if (on) { var f0 = sfw.querySelector('[data-asf="n"]'); if (f0) f0.focus(); }
+      }
+      return;
+    }
+
+    var sc = t.closest('[data-shotcancel]');
+    if (sc) {
+      e.stopPropagation();
+      var cw2 = document.getElementById('sf-' + sc.getAttribute('data-shotcancel') + '__' + sc.getAttribute('data-i'));
+      if (cw2) cw2.classList.remove('open');
+      var eb = document.querySelector('[data-shotedit="' + sc.getAttribute('data-shotcancel') +
+        '"][data-i="' + sc.getAttribute('data-i') + '"]');
+      if (eb) eb.textContent = 'Edit';
+      return;
+    }
+
+    var ss = t.closest('[data-shotsave]');
+    if (ss) {
+      e.stopPropagation();
+      var spid = ss.getAttribute('data-shotsave'), si = +ss.getAttribute('data-i');
+      var sp2 = findPost(spid), sw = document.getElementById('sf-' + spid + '__' + si);
+      if (!sp2 || !sw) return;
+      var edited = readShotFields(sw);
+      if (!edited) {
+        var f1 = sw.querySelector('[data-asf="n"]');
+        if (f1) { f1.focus(); f1.placeholder = 'Give the shot a name first'; }
+        return;
+      }
+      // same index in, same index out — the references on this shot never move
+      var list = shotsOf(sp2).slice();
+      list[si] = edited;
+      saveShots(sp2, list);
+      openSet[spid] = true;
+      refreshCard(spid);
+      flash('Shot ' + (si + 1) + ' saved.');
+      return;
+    }
+
     var rst = t.closest('[data-edreset]');
     if (rst) {
       e.stopPropagation();
@@ -1038,7 +1129,7 @@
       if (!window.confirm('Throw away the local changes on this post and go back to the plan?')) return;
       put('edit:' + rid, {});
       openSet[rid] = true;
-      renderWeek();
+      refreshCard(rid);
       flash('Back to the plan.');
       return;
     }
@@ -1068,26 +1159,15 @@
       var apid = asS.getAttribute('data-assave'), ap2 = findPost(apid);
       var wrap = document.getElementById('as-' + apid);
       if (!ap2 || !wrap) return;
-      var val = function (n) { var el = wrap.querySelector('[data-asf="' + n + '"]'); return el ? el.value.trim() : ''; };
-      var nameTxt = val('n'), doTxt = val('do');
-      if (!nameTxt && !doTxt) {
+      var sh = readShotFields(wrap);
+      if (!sh) {
         var di = wrap.querySelector('[data-asf="n"]');
         if (di) { di.focus(); di.placeholder = 'Give the shot a name first'; }
         return;
       }
-      var sh = {};
-      if (nameTxt) sh.n = toRich(nameTxt);
-      if (doTxt) sh.do = toRich(doTxt);
-      else if (nameTxt) { sh.do = sh.n; delete sh.n; }   // name only = plain line
-      var aVal = val('a'), hVal = val('h'), sVal = parseInt(val('s'), 10);
-      if (aVal) sh.a = aVal;
-      if (hVal) sh.h = hVal;
-      if (sVal > 0) sh.s = sVal;
-      var hbox = wrap.querySelector('[data-asf="have"]');
-      if (hbox && hbox.checked) { sh.have = true; if (val('file')) sh.file = val('file'); }
       saveShots(ap2, shotsOf(ap2).concat([sh]));
       openSet[apid] = true;
-      renderWeek();
+      refreshCard(apid);
       var newIdx = shotsOf(ap2).length - 1;
       slotMsg(slotKey(apid, newIdx), '<b>Shot added.</b> Drop the reference for it here.', 'ok');
       var frame = document.getElementById(slotDom(slotKey(apid, newIdx)));
@@ -1108,7 +1188,7 @@
       shiftRefsAfterRemove(kpid, ki, kshots.length);
       saveShots(kp, kshots.filter(function (_, n) { return n !== ki; }));
       openSet[kpid] = true;
-      renderWeek();
+      refreshCard(kpid);
       flash('Shot removed.');
       return;
     }
@@ -1240,19 +1320,14 @@
 
   var dragS = null;
 
-  function renumber(ol) {
-    Array.prototype.forEach.call(ol.children, function (li, i) {
-      var n = li.querySelector('.s-n');
-      if (n) n.textContent = i + 1;
-    });
-  }
-
   function moveShot(pid, from, to) {
     var p = findPost(pid);
     if (!p) return;
     var shots = shotsOf(p).slice();
     if (from === to || from < 0 || to < 0 || from >= shots.length || to >= shots.length) return;
 
+    // a shot is addressed by position, so its references move with it. Read
+    // every list BEFORE writing any, or row 3's frames land on row 4 mid-shuffle.
     var refs = shots.map(function (_, i) { return get('refs:' + slotKey(pid, i), []) || []; });
     shots.splice(to, 0, shots.splice(from, 1)[0]);
     refs.splice(to, 0, refs.splice(from, 1)[0]);
@@ -1261,8 +1336,22 @@
     refs.forEach(function (list, i) { put('refs:' + slotKey(pid, i), list); });
 
     openSet[pid] = true;
-    renderWeek();
+    refreshCard(pid);
     flash('Moved to ' + (to + 1) + '.');
+  }
+
+  /* Where would it land? Count the rows (ignoring the one being dragged) whose
+     middle sits above the pointer — that count IS the destination index, which
+     is exactly what moveShot's splice expects. */
+  function dropIndex(ol, li, y) {
+    var rest = Array.prototype.filter.call(ol.querySelectorAll(':scope > li.shot'),
+      function (x) { return x !== li; });
+    var j = 0;
+    for (var i = 0; i < rest.length; i++) {
+      var r = rest[i].getBoundingClientRect();
+      if (y > r.top + r.height / 2) j = i + 1;
+    }
+    return { to: j, before: rest[j] || null };
   }
 
   document.addEventListener('pointerdown', function (e) {
@@ -1272,39 +1361,38 @@
     if (!ol || !ol.hasAttribute('data-shotlist')) return;
     e.preventDefault();
     try { g.setPointerCapture(e.pointerId); } catch (err) {}
+
+    var line = document.createElement('div');
+    line.className = 'dropline';
     dragS = {
-      id: e.pointerId, li: li, ol: ol, grip: g,
+      id: e.pointerId, li: li, ol: ol, grip: g, line: line,
       pid: ol.getAttribute('data-shotlist'),
-      from: Array.prototype.indexOf.call(ol.children, li)
+      from: Array.prototype.indexOf.call(ol.querySelectorAll(':scope > li.shot'), li),
+      to: null
     };
     li.classList.add('dragging');
     ol.classList.add('reordering');
+    ol.insertBefore(line, li);
   });
 
   document.addEventListener('pointermove', function (e) {
     if (!dragS || e.pointerId !== dragS.id) return;
     e.preventDefault();
-    var ol = dragS.ol, li = dragS.li, y = e.clientY, before = null;
-    var rows = Array.prototype.filter.call(ol.children, function (x) { return x !== li; });
-    for (var i = 0; i < rows.length; i++) {
-      var r = rows[i].getBoundingClientRect();
-      if (y < r.top + r.height / 2) { before = rows[i]; break; }
-    }
-    if (before) { if (li.nextSibling !== before) ol.insertBefore(li, before); }
-    else if (ol.lastChild !== li) ol.appendChild(li);
-    renumber(ol);                       // the numbers follow the drag, live
+    var d = dropIndex(dragS.ol, dragS.li, e.clientY);
+    dragS.to = d.to;
+    if (d.before) dragS.ol.insertBefore(dragS.line, d.before);
+    else dragS.ol.appendChild(dragS.line);
   });
 
   function endDrag(e) {
     if (!dragS || (e && e.pointerId !== dragS.id)) return;
-    var ol = dragS.ol, li = dragS.li, pid = dragS.pid, from = dragS.from;
-    var to = Array.prototype.indexOf.call(ol.children, li);
+    var pid = dragS.pid, from = dragS.from, to = dragS.to;
     try { dragS.grip.releasePointerCapture(dragS.id); } catch (err) {}
-    li.classList.remove('dragging');
-    ol.classList.remove('reordering');
+    if (dragS.line.parentNode) dragS.line.parentNode.removeChild(dragS.line);
+    dragS.li.classList.remove('dragging');
+    dragS.ol.classList.remove('reordering');
     dragS = null;
-    if (to !== from) moveShot(pid, from, to);
-    else { openSet[pid] = true; renderWeek(); }   // snap the DOM back exactly
+    if (to !== null && to !== from) moveShot(pid, from, to);
   }
   document.addEventListener('pointerup', endDrag);
   document.addEventListener('pointercancel', endDrag);

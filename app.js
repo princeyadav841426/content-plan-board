@@ -1540,7 +1540,6 @@
       strip.insertAdjacentHTML('beforeend',
         '<div class="ref busy">Saving ' + list.length + '…</div>');
     }
-    slotMsg(k, 'Saving…');
 
     var added = 0, errs = [];
     for (var i = 0; i < list.length; i++) {
@@ -1553,19 +1552,20 @@
 
     redrawSlot(k);
 
-    var kept = (get('refs:' + k, []) || []).length;
-    var msg = '', kind = added ? 'ok' : 'warn';
-    if (added) {
-      msg += '<b>Saved.</b> ' + kept + (kept === 1 ? ' reference' : ' references') +
-        ' on this shot &mdash; ' + (Store.mode === 'live'
-          ? 'Swatti can see it now.' : 'it stays here until you delete it.') + ' ';
+    /* A clean upload says nothing — the thumbnail appearing IS the confirmation.
+       Prince's call: "don't add these text bottom side, remove completely."
+       Only a real problem (nothing kept, a skipped file, an error) still gets a
+       line here, because those aren't visible any other way. */
+    var msg = '', kind = 'warn';
+    if (!added) {
+      if (skipped) msg = skipped + ' file' + (skipped > 1 ? 's were' : ' was') + ' neither a photo nor a clip. ';
+      if (errs.length) msg += errs.join(' ');
+      if (!errs.length && !skipped) msg = '<b>That file couldn\'t be read.</b> Try a JPG, PNG or MP4.';
+    } else if (skipped || errs.length) {
+      if (skipped) msg += skipped + ' file' + (skipped > 1 ? 's were' : ' was') + ' neither a photo nor a clip. ';
+      if (errs.length) msg += errs.join(' ');
     }
-    if (skipped) msg += skipped + ' file' + (skipped > 1 ? 's were' : ' was') +
-      ' neither a photo nor a clip. ';
-    if (errs.length) msg += errs.join(' ');
-    if (!added && !errs.length && !skipped) msg = '<b>That file couldn\'t be read.</b> Try a JPG, PNG or MP4.';
     slotMsg(k, msg, kind);
-    if (added) flash(added === 1 ? 'Reference saved.' : added + ' references saved.');
     syncBadge();
   }
 
